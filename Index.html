@@ -162,6 +162,10 @@
         <ul class="nav-list" id="navListDeptHead" style="display:none;">
           <li class="nav-item"><button class="nav-link" data-view="depthead" type="button"><i class="fa-solid fa-user-check"></i><span>Head Verification</span></button></li>
         </ul>
+        <div class="nav-section-title" id="navSectionMinistryHead" style="display:none;">Ministry</div>
+        <ul class="nav-list" id="navListMinistryHead" style="display:none;">
+          <li class="nav-item"><button class="nav-link" data-view="ministryhead" type="button"><i class="fa-solid fa-building-user"></i><span>Ministry Verification</span></button></li>
+        </ul>
         <div class="nav-section-title">Approvals</div>
         <ul class="nav-list">
           <li class="nav-item"><button class="nav-link" data-view="allpvs" type="button"><i class="fa-solid fa-list"></i><span>All PVs</span></button></li>
@@ -194,7 +198,12 @@
           <div class="divider"></div>
           <div class="grid-3">
             <div><label class="field-label">Applicant</label><input type="text" id="applicantName" placeholder="Your name" /></div>
-            <div><label class="field-label">Dept / Ministry</label><div class="field"><select id="deptSelect"></select><button class="icon-btn" type="button" id="btnAddDept"><i class="fa-solid fa-plus"></i></button></div></div>
+            <div>
+              <label class="field-label">Department</label>
+              <div class="field"><select id="deptSelect"></select><button class="icon-btn" type="button" id="btnAddDept"><i class="fa-solid fa-plus"></i></button></div>
+              <label class="field-label" style="margin-top:8px;">Ministry</label>
+              <select id="ministrySelect"></select>
+            </div>
             <div><label class="field-label">Project <span class="label-note">(optional)</span></label><div class="field"><select id="projectSelect"></select><button class="icon-btn" type="button" id="btnAddProject"><i class="fa-solid fa-plus"></i></button></div></div>
           </div>
           <div class="grid-3" style="margin-top:12px;">
@@ -300,6 +309,22 @@
             <div style="margin-top:10px;"><button class="btn small" type="button" id="btnSaveNewDept">Save Department</button> <button class="btn small secondary" type="button" id="btnCancelNewDept">Cancel</button></div>
           </div>
           <div id="addDeptBtnWrap" style="margin-top:12px;display:none;"><button class="btn small" type="button" id="btnShowAddDept"><i class="fa-solid fa-plus"></i> Add Department</button></div>
+        </div>
+      </section>
+
+      <!-- VIEW: MINISTRY HEAD VERIFICATION -->
+      <section id="view-ministryhead" class="view">
+        <div class="card">
+          <div class="card-title-row"><div><h3 class="card-title">Ministry Head Verification</h3><p class="card-subtitle">PVs from your ministry awaiting verification</p></div><button class="btn small" type="button" id="btnRefreshMinistryHead"><i class="fa-solid fa-rotate"></i></button></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>PV No</th><th>Date</th><th>Applicant</th><th>Ministry</th><th>Purpose</th><th>Amount</th><th>Status</th><th style="width:180px;"></th></tr></thead><tbody id="ministryHeadPendingBody"><tr><td colspan="8" class="muted">Loading...</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title-row"><div><h3 class="card-title"><i class="fa-solid fa-check" style="color:#16a34a;"></i> Verified by You</h3></div></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>PV No</th><th>Date</th><th>Applicant</th><th>Ministry</th><th>Purpose</th><th>Amount</th><th>Status</th><th style="width:120px;"></th></tr></thead><tbody id="ministryHeadVerifiedBody"><tr><td colspan="8" class="muted">None.</td></tr></tbody></table>
+          </div>
         </div>
       </section>
 
@@ -593,6 +618,7 @@
     claims:     { title: "My Claims", sub: "Your submitted PVs.", onEnter: loadMyClaims },
     track:      { title: "Track Status", sub: "Check your claim status.", onEnter: function() {} },
     depthead:   { title: "Department Head", sub: "Verify PVs from your department.", onEnter: loadDeptHeadPVs },
+    ministryhead:{ title: "Ministry Head", sub: "Verify PVs from your ministry.", onEnter: loadMinistryHeadPVs },
     allpvs:     { title: "All PVs", sub: "Master view for Admin & Signatories.", onEnter: loadAllPvs },
     approvals:  { title: "Pending Review", sub: "Finance Admin review queue.", onEnter: loadApprovals },
     signatories:{ title: "Signatory Approval", sub: "Bishop/Treasurer/Secretary.", onEnter: loadSignatories },
@@ -655,8 +681,10 @@
     // Departments - now comes as array of objects with name, head_name, head_email
     var deptSelect = document.getElementById("deptSelect");
     var recDept = document.getElementById("recDept");
+    var ministrySelect = document.getElementById("ministrySelect");
     deptSelect.innerHTML = '<option value="">(select)</option>';
     recDept.innerHTML = '<option value="">(select)</option>';
+    if (ministrySelect) ministrySelect.innerHTML = '<option value="">(select)</option>';
     
     // Handle both old format (array of strings) and new format (array of objects or departmentNames)
     var deptList = L.departmentNames || L.departments || [];
@@ -695,6 +723,15 @@
       var id = p.id || "";
       payeeSelect.innerHTML += '<option value="' + name + '" data-id="' + id + '">' + name + '</option>';
     });
+
+    // Ministries
+    if (ministrySelect) {
+      (L.ministries || []).forEach(function(m) {
+        if (m) {
+          ministrySelect.innerHTML += '<option value="' + m + '">' + m + '</option>';
+        }
+      });
+    }
   }
 
   /* ============================================================
@@ -877,14 +914,22 @@
     return '<span class="tag-pill ' + cls + '">' + label + '</span>';
   }
 
-  function getStatusDisplayInfo(status, approvalsCount) {
+  function getStatusDisplayInfo(status, approvalsCount, pv) {
     status = String(status || "").toUpperCase();
     var info = { label: status, cssClass: "pending", description: "" };
-    
+    var ministryVerified = pv && String(pv.ministry_verified || "").toUpperCase() === "YES";
+    var ministryBypassed = pv && String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
+
     if (status === "PENDING") { 
       info = { label: "Pending Finance Admin Review", cssClass: "pending", description: "Awaiting Finance Admin to review this PV" };
     } else if (status === "REVIEWED") { 
-      info = { label: "Finance Admin Reviewed", cssClass: "reviewed", description: "Finance Admin has reviewed. Awaiting Ministry Head verification." };
+      if (ministryVerified) {
+        info = { label: "Ministry Verified", cssClass: "ministry-verified", description: "Ministry Head verified. Awaiting Signatory approval." };
+      } else if (ministryBypassed) {
+        info = { label: "Verification Bypassed", cssClass: "ministry-verified", description: "Ministry verification bypassed. Awaiting Signatory approval." };
+      } else {
+        info = { label: "Finance Admin Reviewed", cssClass: "reviewed", description: "Finance Admin has reviewed. Awaiting Ministry Head verification." };
+      }
     } else if (status === "PENDING_MINISTRY") { 
       info = { label: "Pending Ministry PIC Verification", cssClass: "pending-ministry", description: "Awaiting Ministry/Department Head to verify" };
     } else if (status === "MINISTRY_VERIFIED") { 
@@ -1026,6 +1071,7 @@
     data.pvDate = document.getElementById("pvDate").value;
     data.applicant_name = document.getElementById("applicantName").value || "";
     data.dept = document.getElementById("deptSelect").value || "";
+    data.ministry = document.getElementById("ministrySelect").value || "";
     data.project = document.getElementById("projectSelect").value || "";
     data.payee_name = document.getElementById("payeeSelect").value || "";
     data.purpose = document.getElementById("purpose").value || "";
@@ -1086,6 +1132,7 @@
     document.getElementById("pvNumberPreview").textContent = "(auto)";
     document.getElementById("applicantName").value = "";
     document.getElementById("purpose").value = "";
+    if (document.getElementById("ministrySelect")) document.getElementById("ministrySelect").value = "";
   }
 
   /* ============================================================
@@ -1433,6 +1480,8 @@
           var approvalsText = pv.approvals_count || "0/2";
           var approvalDetails = pv.approval_details || "";
           var alreadyApproved = pv.currentUserApproved;
+          var ministryReady = String(pv.ministry_verified || "").toUpperCase() === "YES" ||
+            String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
           
           // Show approval details (who approved) with revoke buttons
           var approvalDisplay = approvalsText;
@@ -1450,9 +1499,12 @@
           if (alreadyApproved && canAct) {
             approvalDisplay += '<br><small class="muted">(you approved)</small>';
           }
+          if (!ministryReady) {
+            approvalDisplay += '<br><small class="muted">Awaiting ministry verification</small>';
+          }
           
           var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pvNo + '\')">View</button>';
-          var btnApprove = canAct && !alreadyApproved ? ' <button class="btn small" onclick="openPvDetail(\'' + pvNo + '\',\'signatory\')">Approve</button>' : '';
+          var btnApprove = canAct && !alreadyApproved && ministryReady ? ' <button class="btn small" onclick="openPvDetail(\'' + pvNo + '\',\'signatory\')">Approve</button>' : '';
           var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pvNo + '\')"><i class="fa-solid fa-print"></i></button>';
           var btnCancel = ' <button class="btn small danger" onclick="cancelPV(\'' + pvNo + '\')" title="Cancel"><i class="fa-solid fa-ban"></i></button>';
           var btnShare = canShare() ? ' <button class="btn small secondary" onclick="sharePV(\'' + pvNo + '\')"><i class="fa-solid fa-link"></i></button>' : "";
@@ -1621,6 +1673,30 @@
         comment.style.cssText = "width:100%;min-height:50px;font-size:12px;margin-right:auto;border-radius:8px;border:1px solid #ddd;padding:8px;";
         footer.appendChild(comment);
 
+        var canBypass = String(pv.ministry_verified || "").toUpperCase() !== "YES" &&
+          String(pv.ministry_verify_bypassed || "").toUpperCase() !== "YES";
+        if (canBypass) {
+          var btnBypass = document.createElement("button");
+          btnBypass.className = "btn secondary small";
+          btnBypass.textContent = "Bypass Verification";
+          btnBypass.onclick = function() {
+            var reason = prompt("Reason for bypassing ministry verification:");
+            if (reason === null) return;
+            runServer("adminBypassMinistryVerification", [pvNo2, reason], function(res) {
+              if (res && res.ok) {
+                toastOk("Ministry verification bypassed.");
+                closeModal("pvDetailModal");
+                loadApprovals();
+                loadSignatories();
+                loadAllPvs();
+              } else {
+                toastErr((res && res.error) || "Bypass failed.");
+              }
+            });
+          };
+          footer.appendChild(btnBypass);
+        }
+
         var btnReject = document.createElement("button");
         btnReject.className = "btn danger small";
         btnReject.textContent = "Reject";
@@ -1783,7 +1859,7 @@
   }
 
   function renderPvPreview(pv, signatures) {
-    var statusInfo = getStatusDisplayInfo(pv.status, pv.approvals_count);
+    var statusInfo = getStatusDisplayInfo(pv.status, pv.approvals_count, pv);
     var statusEl = document.getElementById("pvPreviewStatus");
     statusEl.textContent = statusInfo.label;
     statusEl.className = "pv-preview-status " + statusInfo.cssClass;
@@ -1829,19 +1905,21 @@
 
     // Ministry Head verification section
     var ministryHeadHtml = "";
-    var ministryVerified = (pv.ministry_verified === "YES" || pv.head_verified === "YES");
+    var ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
+    var ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
     var deptHeadName = pv.dept_head_name || pv.ministry_head_name || "";
-    var deptName = pv.dept || "";
+    var ministryName = pv.ministry || pv.dept || "";
+    var ministryStatus = ministryVerified ? "Verified" : (ministryBypassed ? "Bypassed" : "Pending");
     
     ministryHeadHtml = '<div style="margin-top:20px;padding:15px;border:1px solid #ddd;border-radius:8px;">' +
-      '<div style="font-weight:bold;font-size:11px;margin-bottom:10px;border-bottom:1px solid #ccc;padding-bottom:5px;">VERIFIED BY (Ministry Head):</div>' +
-      '<div style="display:flex;gap:40px;">' +
+      '<div style="font-weight:bold;font-size:11px;margin-bottom:10px;border-bottom:1px solid #ccc;padding-bottom:5px;">MINISTRY VERIFICATION: ' + ministryStatus.toUpperCase() + '</div>' +
+      '<div style="display:flex;gap:40px;align-items:center;">' +
       '<div style="text-align:center;width:180px;">' +
       '<div style="height:50px;display:flex;align-items:flex-end;justify-content:center;">';
     
     if (ministryVerified && signatures && signatures.DEPT_HEAD && signatures.DEPT_HEAD.file_url) {
       ministryHeadHtml += '<img src="' + signatures.DEPT_HEAD.file_url + '" style="max-height:45px;max-width:150px;">';
-    } else if (ministryVerified) {
+    } else if (ministryVerified || ministryBypassed) {
       ministryHeadHtml += '<span style="color:#16a34a;font-size:20px;"><i class="fa-solid fa-check-circle"></i></span>';
     } else {
       ministryHeadHtml += '<span style="color:#ccc;font-size:11px;">Pending</span>';
@@ -1850,8 +1928,13 @@
     ministryHeadHtml += '</div>' +
       '<div style="border-top:1px solid #000;margin-top:5px;padding-top:5px;">' +
       '<div style="font-size:10px;">' + (deptHeadName || 'Ministry Head') + '</div>' +
-      '<div style="font-size:9px;color:#666;">(' + deptName + ')</div>' +
-      '</div></div></div></div>';
+      '<div style="font-size:9px;color:#666;">(' + ministryName + ')</div>' +
+      '</div></div>' +
+      '<div style="font-size:10px;color:#666;">' +
+      (ministryVerified && pv.ministry_verified_by ? 'By: ' + pv.ministry_verified_by + '<br>' : '') +
+      (ministryBypassed && pv.ministry_bypass_by ? 'By: ' + pv.ministry_bypass_by + '<br>' : '') +
+      '</div>' +
+      '</div></div>';
 
     // Signatories section
     var approvals = pv.approvals || [];
@@ -1910,7 +1993,7 @@
       '<table style="width:100%;margin-bottom:10px;"><tr>' +
       '<td style="width:70%;">' +
       '<div><strong>PAY TO:</strong> <span style="font-weight:bold;text-transform:uppercase;">' + (pv.payee_name || '') + '</span></div>' +
-      '<div style="margin-top:5px;"><strong>MINISTRY / DPT:</strong> ' + (pv.dept || '') + '</div>' +
+      '<div style="margin-top:5px;"><strong>MINISTRY / DPT:</strong> ' + (pv.ministry || pv.dept || '') + '</div>' +
       '</td>' +
       '<td style="text-align:right;font-size:11px;">' +
       'Voucher No: <strong>' + (pv.pv_no || '') + '</strong><br>' +
@@ -1991,6 +2074,7 @@
     else if (view === "approvals") loadApprovals();
     else if (view === "signatories") loadSignatories();
     else if (view === "depthead") loadDeptHeadPVs();
+    else if (view === "ministryhead") loadMinistryHeadPVs();
     else if (view === "claims") loadMyClaims();
   }
 
@@ -2039,6 +2123,9 @@
       document.getElementById("pvDate").value = pv.date ? pv.date.substring(0, 10) : "";
       document.getElementById("applicantName").value = pv.applicant_name || "";
       document.getElementById("deptSelect").value = pv.dept || "";
+      if (document.getElementById("ministrySelect")) {
+        document.getElementById("ministrySelect").value = pv.ministry || "";
+      }
       document.getElementById("projectSelect").value = pv.project || "";
       document.getElementById("payeeSelect").value = pv.payee_name || "";
       document.getElementById("purpose").value = pv.purpose || "";
@@ -2268,6 +2355,9 @@
     document.getElementById("pvDate").value = p.pvDate || new Date().toISOString().slice(0, 10);
     document.getElementById("applicantName").value = p.applicant_name || "";
     document.getElementById("deptSelect").value = p.dept || "";
+    if (document.getElementById("ministrySelect")) {
+      document.getElementById("ministrySelect").value = p.ministry || "";
+    }
     document.getElementById("projectSelect").value = p.project || "";
     document.getElementById("payeeSelect").value = p.payee_name || "";
     document.getElementById("purpose").value = p.purpose || "";
@@ -2555,6 +2645,95 @@
   }
 
   /* ============================================================
+     MINISTRY HEAD VERIFICATION
+     ============================================================ */
+  function loadMinistryHeadPVs() {
+    var pendingBody = document.getElementById("ministryHeadPendingBody");
+    var verifiedBody = document.getElementById("ministryHeadVerifiedBody");
+    
+    if (!pendingBody) return;
+    
+    pendingBody.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+    verifiedBody.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+
+    runServer("listPVsForMinistryHead", undefined, function(res) {
+      if (!res || !res.ok) {
+        pendingBody.innerHTML = '<tr><td colspan="8" class="muted">' + ((res && res.error) || "Not a ministry head or no PVs.") + '</td></tr>';
+        verifiedBody.innerHTML = '<tr><td colspan="8" class="muted">-</td></tr>';
+        return;
+      }
+
+      if (!res.pending || !res.pending.length) {
+        pendingBody.innerHTML = '<tr><td colspan="8" class="muted">No PVs awaiting your verification.</td></tr>';
+      } else {
+        var html = "";
+        res.pending.forEach(function(pv) {
+          var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pv.pv_no + '\')">View</button>';
+          var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pv.pv_no + '\')"><i class="fa-solid fa-print"></i></button>';
+          var btnVerify = ' <button class="btn small" onclick="ministryHeadAction(\'' + pv.pv_no + '\',\'VERIFY\')">Verify</button>';
+          var btnReject = ' <button class="btn small danger" onclick="ministryHeadAction(\'' + pv.pv_no + '\',\'REJECT\')">Reject</button>';
+
+          html += "<tr>" +
+            "<td>" + pv.pv_no + "</td>" +
+            "<td>" + formatDate(pv.date) + "</td>" +
+            "<td>" + pv.applicant_name + "</td>" +
+            "<td>" + (pv.ministry || pv.dept || "") + "</td>" +
+            "<td>" + pv.purpose + "</td>" +
+            '<td style="text-align:right;">' + pv.amount + "</td>" +
+            '<td>' + renderStatusPill(pv.status, pv.approvals_count) + '</td>' +
+            '<td style="text-align:right;white-space:nowrap;">' + btnView + btnPrint + btnVerify + btnReject + '</td>' +
+            "</tr>";
+        });
+        pendingBody.innerHTML = html;
+      }
+
+      if (!res.verified || !res.verified.length) {
+        verifiedBody.innerHTML = '<tr><td colspan="8" class="muted">None verified yet.</td></tr>';
+      } else {
+        var html = "";
+        res.verified.forEach(function(pv) {
+          var verifiedInfo = pv.ministry_verified_at ? ' <small class="muted">(' + formatDate(pv.ministry_verified_at) + ')</small>' : '';
+          var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pv.pv_no + '\')">View</button>';
+          var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pv.pv_no + '\')"><i class="fa-solid fa-print"></i></button>';
+          var btnCancel = ' <button class="btn small danger" onclick="cancelPV(\'' + pv.pv_no + '\')" title="Cancel"><i class="fa-solid fa-ban"></i></button>';
+          
+          html += "<tr>" +
+            "<td><i class=\"fa-solid fa-check\" style=\"color:#16a34a;\"></i> " + pv.pv_no + verifiedInfo + "</td>" +
+            "<td>" + formatDate(pv.date) + "</td>" +
+            "<td>" + pv.applicant_name + "</td>" +
+            "<td>" + (pv.ministry || pv.dept || "") + "</td>" +
+            "<td>" + pv.purpose + "</td>" +
+            '<td style="text-align:right;">' + pv.amount + "</td>" +
+            '<td>' + renderStatusPill(pv.status, pv.approvals_count) + '</td>' +
+            '<td style="text-align:right;white-space:nowrap;">' + btnView + btnPrint + btnCancel + '</td>' +
+            "</tr>";
+        });
+        verifiedBody.innerHTML = html;
+      }
+    });
+  }
+
+  function ministryHeadAction(pvNo, action) {
+    var comment = "";
+    if (action === "REJECT") {
+      comment = prompt("Reason for rejection:");
+      if (comment === null) return;
+    }
+
+    toast("warn", action === "VERIFY" ? "Verifying" : "Rejecting", "Please wait...");
+    runServer("ministryHeadVerifyPV", [pvNo, action, comment], function(res) {
+      if (res && res.ok) {
+        toastOk(res.message || "Done.");
+        loadMinistryHeadPVs();
+        loadApprovals();
+        loadAllPvs();
+      } else {
+        toastErr((res && res.error) || "Action failed.");
+      }
+    });
+  }
+
+  /* ============================================================
      CHECK IF USER IS DEPARTMENT HEAD
      ============================================================ */
   function checkDeptHeadStatus() {
@@ -2564,6 +2743,21 @@
       
       if (res && res.ok) {
         // User is a department head, show the menu
+        if (navSection) navSection.style.display = "block";
+        if (navList) navList.style.display = "block";
+      } else {
+        if (navSection) navSection.style.display = "none";
+        if (navList) navList.style.display = "none";
+      }
+    });
+  }
+
+  function checkMinistryHeadStatus() {
+    runServer("listPVsForMinistryHead", undefined, function(res) {
+      var navSection = document.getElementById("navSectionMinistryHead");
+      var navList = document.getElementById("navListMinistryHead");
+
+      if (res && res.ok) {
         if (navSection) navSection.style.display = "block";
         if (navList) navList.style.display = "block";
       } else {
@@ -2969,6 +3163,9 @@
     if (document.getElementById("btnRefreshDeptHead")) {
       document.getElementById("btnRefreshDeptHead").addEventListener("click", loadDeptHeadPVs);
     }
+    if (document.getElementById("btnRefreshMinistryHead")) {
+      document.getElementById("btnRefreshMinistryHead").addEventListener("click", loadMinistryHeadPVs);
+    }
     if (document.getElementById("btnRefreshDepts")) {
       document.getElementById("btnRefreshDepts").addEventListener("click", loadDepartmentsList);
     }
@@ -3004,6 +3201,7 @@
 
     // Check if user is department head
     setTimeout(checkDeptHeadStatus, 800);
+    setTimeout(checkMinistryHeadStatus, 800);
 
     setTimeout(loadMyClaims, 600);
     handleDeepLink();
