@@ -1,0 +1,3017 @@
+<!-- LCM Finance v2 - index.html - PART 1/3 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LCM Finance</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root{--brand:#4a6da7;--brand-2:#6b9ac4;--ink:#2f2f2f;--paper:#f8f7f5;--border:#dcd4c9;--radius-lg:18px;--shadow-soft:0 12px 30px rgba(0,0,0,.08);--pill-pending:#fbbf24;--pill-reviewed:#3b82f6;--pill-approved:#16a34a;--pill-rejected:#ef4444;--toast-ok:#22c55e;--toast-warn:#f59e0b;--toast-err:#ef4444;}
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;height:100%;font-family:"Lato",system-ui,sans-serif;color:var(--ink);background:var(--paper);}
+    body{display:flex;min-height:100vh;}
+    /* Scrollable table container */
+    .table-scroll{max-height:400px;overflow-y:auto;overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin:10px 0;}
+    .table-scroll table{margin:0;}
+    .table-scroll thead th{position:sticky;top:0;background:#f0f0f0;z-index:1;}
+    /* Search bar */
+    .search-bar{display:flex;gap:10px;margin-bottom:12px;align-items:center;}
+    .search-bar input{flex:1;max-width:300px;}
+    .search-bar .search-icon{color:#888;}
+    /* Monthly folder */
+    .month-folder{margin:12px 0;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+    .month-folder-header{background:#f0f0f0;padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;}
+    .month-folder-header:hover{background:#e8e8e8;}
+    .month-folder-header .toggle-icon{transition:transform 0.2s;}
+    .month-folder.collapsed .toggle-icon{transform:rotate(-90deg);}
+    .month-folder.collapsed .month-folder-content{display:none;}
+    .month-folder-content{padding:10px;}
+    .month-folder-count{font-size:12px;color:#666;font-weight:normal;}
+    /* Status pills extra */
+    .pill-pending{background:#fbbf24;color:#000;} /* Bright Yellow - Pending Finance Admin */
+    .pill-reviewed{background:#b45309;color:#fff;} /* Dark Yellow/Amber - Finance Admin Reviewed */
+    .pill-pending-ministry{background:#7dd3fc;color:#000;} /* Light Blue - Pending Ministry PIC */
+    .pill-ministry-verified{background:#0369a1;color:#fff;} /* Dark Blue - Ministry PIC Verified */
+    .pill-pending-signatory-0{background:#c084fc;color:#000;} /* Bright Purple - Pending Signatory 0/2 */
+    .pill-pending-signatory-1{background:#a855f7;color:#fff;} /* Light Purple - Pending Signatory 1/2 */
+    .pill-approved{background:#16a34a;color:#fff;} /* Green - Approved */
+    .pill-rejected{background:#ef4444;color:#fff;} /* Red - Rejected */
+    .pill-cancelled{background:#6b7280;color:#fff;} /* Gray - Cancelled */
+    .pill-pending-head{background:#fbbf24;color:#000;}
+    .pill-rejected-head{background:#ef4444;color:#fff;}
+    /* PV Preview Modal */
+    .pv-preview-modal .modal-card{max-width:800px;}
+    .pv-preview-status{padding:12px 16px;text-align:center;font-weight:700;font-size:14px;}
+    .pv-preview-status.pending{background:#fef3c7;color:#92400e;}
+    .pv-preview-status.reviewed{background:#fde68a;color:#78350f;}
+    .pv-preview-status.pending-ministry{background:#e0f2fe;color:#0369a1;}
+    .pv-preview-status.ministry-verified{background:#0ea5e9;color:#fff;}
+    .pv-preview-status.pending-signatory-0{background:#f3e8ff;color:#7c3aed;}
+    .pv-preview-status.pending-signatory-1{background:#e9d5ff;color:#6b21a8;}
+    .pv-preview-status.approved{background:#dcfce7;color:#166534;}
+    .pv-preview-status.rejected{background:#fee2e2;color:#991b1b;}
+    .pv-preview-status.cancelled{background:#f3f4f6;color:#374151;}
+    .sidebar{width:260px;background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;padding:24px 18px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;}
+    .sidebar-brand{display:flex;align-items:center;gap:12px;margin-bottom:28px;}
+    .brand-avatar{width:54px;height:54px;border-radius:50%;border:3px solid rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-family:"Cinzel",serif;font-weight:700;font-size:22px;background:rgba(255,255,255,.12);}
+    .brand-text-title{font-family:"Cinzel",serif;font-size:20px;font-weight:700;}
+    .brand-text-sub{font-size:11px;opacity:.85;}
+    .nav-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.12em;opacity:.75;margin:10px 10px 6px;}
+    .nav-list{list-style:none;padding:0;margin:0 0 18px;}
+    .nav-item{margin-bottom:4px;}
+    .nav-link{width:100%;border:none;background:transparent;color:#ecf4ff;display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:999px;cursor:pointer;font-size:14px;text-align:left;transition:background .15s ease;}
+    .nav-link i{width:18px;text-align:center;}
+    .nav-link.active{background:rgba(255,255,255,.18);}
+    .nav-link:hover{background:rgba(255,255,255,.13);}
+    .sidebar-footer{margin-top:auto;font-size:11px;opacity:.85;padding:10px 6px 0;border-top:1px solid rgba(255,255,255,.16);}
+    .main{flex:1;padding:22px 26px 32px;overflow-y:auto;}
+    .main-inner{max-width:1120px;margin:0 auto;}
+    header.app-header{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:18px;}
+    .page-title{font-family:"Cinzel",serif;font-size:24px;margin:0 0 4px;}
+    .page-subtitle{margin:0;font-size:13px;color:#666;}
+    .badge-role{font-size:11px;padding:4px 9px;border-radius:999px;background:#e0ecff;color:#1d4ed8;margin-left:6px;display:inline-flex;align-items:center;gap:6px;}
+    .card{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-soft);padding:18px 20px 20px;margin-bottom:18px;}
+    .card-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap;}
+    .card-title{font-family:"Cinzel",serif;font-size:18px;margin:0;}
+    .card-subtitle{margin:0;font-size:12px;color:#777;}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;}
+    .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 16px;}
+    label.field-label{font-size:12px;color:#555;margin-bottom:3px;display:flex;justify-content:space-between;}
+    .label-note{font-size:11px;color:#999;margin-left:6px;}
+    .field{display:flex;gap:6px;align-items:stretch;}
+    .field>*{flex:1;}
+    input[type="text"],input[type="date"],input[type="number"],select,textarea{width:100%;border-radius:10px;border:1px solid var(--border);padding:8px 10px;font-size:13px;font-family:inherit;background:#fbfaf8;}
+    textarea{resize:vertical;min-height:38px;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 2px rgba(74,109,167,.16);background:#fff;}
+    .btn{border:none;border-radius:999px;font-size:13px;padding:8px 16px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:8px;background:var(--brand);color:#fff;box-shadow:0 8px 20px rgba(74,109,167,.25);}
+    .btn:hover{background:#3f5f90;}
+    .btn:disabled{opacity:.6;cursor:not-allowed;}
+    .btn.secondary{background:#e5ecff;color:#1e3a8a;box-shadow:none;}
+    .btn.secondary:hover{background:#d6e2ff;}
+    .btn.danger{background:#ef4444;}
+    .btn.danger:hover{background:#dc2626;}
+    .btn.small{padding:6px 12px;font-size:12px;box-shadow:none;}
+    .icon-btn{flex:none;width:34px;height:34px;border-radius:999px;border:none;background:#edf2ff;color:#1e3a8a;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+    .icon-btn:hover{background:#dde5ff;}
+    .icon-btn.danger{background:#fee2e2;color:#dc2626;}
+    .icon-btn.danger:hover{background:#fecaca;}
+    .divider{height:1px;background:rgba(0,0,0,.06);margin:10px 0 14px;}
+    table{border-collapse:collapse;width:100%;font-size:12px;}
+    th,td{padding:7px 9px;border-bottom:1px solid #eee;vertical-align:top;}
+    th{text-align:left;font-weight:700;color:#555;}
+    .table-footer-row td{font-weight:700;text-align:right;}
+    .tag-pill{display:inline-flex;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;color:#fff;}
+    .pill-pending{background:var(--pill-pending);color:#312e15;}
+    .pill-reviewed{background:var(--pill-reviewed);}
+    .pill-approved{background:var(--pill-approved);}
+    .pill-rejected{background:var(--pill-rejected);}
+    .muted{color:#888;font-size:12px;}
+    .view{display:none;}
+    .view.active{display:block;}
+    #toastWrap{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:200;pointer-events:none;}
+    .toast{pointer-events:auto;min-width:280px;max-width:440px;background:rgba(15,23,42,.96);color:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);transform:translateY(10px);opacity:0;transition:opacity .18s ease,transform .18s ease;}
+    .toast.show{opacity:1;transform:translateY(0);}
+    .toast-top{display:flex;align-items:center;gap:10px;padding:10px 12px;}
+    .toast-dot{width:10px;height:10px;border-radius:99px;}
+    .toast.ok .toast-dot{background:var(--toast-ok);}
+    .toast.warn .toast-dot{background:var(--toast-warn);}
+    .toast.err .toast-dot{background:var(--toast-err);}
+    .toast-title{font-weight:800;font-size:12px;}
+    .toast-msg{padding:0 12px 12px;font-size:12px;opacity:.95;}
+    .toast-actions{display:flex;gap:8px;padding:0 12px 12px;}
+    .toast-actions button{border:none;border-radius:999px;font-size:12px;padding:6px 10px;cursor:pointer;font-weight:700;background:rgba(255,255,255,.10);color:#fff;}
+    .modal{display:none;}
+    .modal.open{display:block;}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.48);display:flex;align-items:center;justify-content:center;z-index:150;}
+    .modal-card{background:#fff;border-radius:16px;max-width:920px;width:calc(100% - 30px);max-height:86vh;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.35);}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #eee;background:#f9fafb;}
+    .modal-title{margin:0;font-family:"Cinzel",serif;font-size:16px;}
+    .modal-body{padding:14px 16px 16px;max-height:62vh;overflow-y:auto;font-size:13px;}
+    .modal-footer{padding:10px 16px 12px;border-top:1px solid #f2f2f2;display:flex;justify-content:flex-end;gap:10px;background:#fafafa;flex-wrap:wrap;}
+    .modal-close{border:none;background:transparent;font-size:18px;cursor:pointer;color:#6b7280;}
+    .attachment-list{list-style:none;padding-left:18px;margin-top:6px;}
+    .attachment-list li{margin-bottom:4px;}
+    .filter-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+    .filter-row select{max-width:150px;}
+    @media(max-width:1040px){.grid-3{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:840px){body{flex-direction:column;}.sidebar{width:100%;height:auto;position:relative;flex-direction:row;padding:12px 14px;}.sidebar-brand{margin-bottom:0;}.sidebar-nav-wrap{flex:1;display:flex;justify-content:flex-end;}.nav-section-title{display:none;}.nav-list{display:flex;flex-wrap:wrap;}.nav-link{padding:6px 10px;font-size:12px;}.sidebar-footer{display:none;}.main{padding:16px 14px 26px;}}
+  </style>
+  <script>window.LCM_SERVER = <?!= JSON.stringify({page:(typeof page!=="undefined"?page:""),pv:(typeof pv!=="undefined"?pv:""),token:(typeof token!=="undefined"?token:"")}) ?>;</script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-avatar">LC</div>
+      <div><div class="brand-text-title">LCM Finance</div><div class="brand-text-sub">Lutheran Church in Malaysia</div></div>
+    </div>
+    <div class="sidebar-nav-wrap">
+      <div style="width:100%;">
+        <div class="nav-section-title">Main</div>
+        <ul class="nav-list">
+          <li class="nav-item"><button class="nav-link active" data-view="pv" type="button"><i class="fa-solid fa-file-invoice"></i><span>Payment Vouchers</span></button></li>
+          <li class="nav-item"><button class="nav-link" data-view="claims" type="button"><i class="fa-solid fa-receipt"></i><span>My Claims</span></button></li>
+          <li class="nav-item"><button class="nav-link" data-view="track" type="button"><i class="fa-solid fa-magnifying-glass-location"></i><span>Track Status</span></button></li>
+          <li class="nav-item"><button class="nav-link" data-view="recurring" type="button"><i class="fa-solid fa-rotate"></i><span>Recurring</span></button></li>
+          <li class="nav-item"><button class="nav-link" data-view="favourites" type="button"><i class="fa-regular fa-star"></i><span>Favourites</span></button></li>
+        </ul>
+        <div class="nav-section-title" id="navSectionDeptHead" style="display:none;">Department</div>
+        <ul class="nav-list" id="navListDeptHead" style="display:none;">
+          <li class="nav-item"><button class="nav-link" data-view="depthead" type="button"><i class="fa-solid fa-user-check"></i><span>Head Verification</span></button></li>
+        </ul>
+        <div class="nav-section-title">Approvals</div>
+        <ul class="nav-list">
+          <li class="nav-item"><button class="nav-link" data-view="allpvs" type="button"><i class="fa-solid fa-list"></i><span>All PVs</span></button></li>
+          <li class="nav-item"><button class="nav-link" data-view="approvals" type="button"><i class="fa-solid fa-clipboard-check"></i><span>Pending Review</span></button></li>
+          <li class="nav-item"><button class="nav-link" data-view="signatories" type="button"><i class="fa-solid fa-pen-nib"></i><span>Signatory Approval</span></button></li>
+        </ul>
+        <div class="nav-section-title">System</div>
+        <ul class="nav-list">
+          <li class="nav-item"><button class="nav-link" data-view="settings" type="button"><i class="fa-solid fa-gear"></i><span>Settings</span></button></li>
+        </ul>
+      </div>
+    </div>
+    <div class="sidebar-footer"><div id="sidebarUserEmail">Signed in</div><div id="sidebarRoles" style="margin-top:2px;"></div></div>
+  </aside>
+
+  <main class="main">
+    <div class="main-inner">
+      <header class="app-header">
+        <div><h1 class="page-title" id="pageTitle">Payment Vouchers</h1><p class="page-subtitle" id="pageSubtitle">Submit a new PV.</p></div>
+        <div id="headerBadges"></div>
+      </header>
+
+      <!-- VIEW: PAYMENT VOUCHERS -->
+      <section id="view-pv" class="view active">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+            <div><div style="font-family:'Cinzel',serif;font-size:20px;font-weight:700;">PAYMENT VOUCHER</div><div style="font-size:11px;color:#777;">Lutheran Church in Malaysia</div></div>
+            <div style="text-align:right;font-size:12px;"><div>PV No: <strong id="pvNumberPreview">(auto)</strong></div><div style="margin-top:6px;">Date:<input type="date" id="pvDate" style="width:150px;margin-left:6px;" /></div></div>
+          </div>
+          <div class="divider"></div>
+          <div class="grid-3">
+            <div><label class="field-label">Applicant</label><input type="text" id="applicantName" placeholder="Your name" /></div>
+            <div><label class="field-label">Dept / Ministry</label><div class="field"><select id="deptSelect"></select><button class="icon-btn" type="button" id="btnAddDept"><i class="fa-solid fa-plus"></i></button></div></div>
+            <div><label class="field-label">Project <span class="label-note">(optional)</span></label><div class="field"><select id="projectSelect"></select><button class="icon-btn" type="button" id="btnAddProject"><i class="fa-solid fa-plus"></i></button></div></div>
+          </div>
+          <div class="grid-3" style="margin-top:12px;">
+            <div><label class="field-label">Payable To</label><div class="field"><select id="payeeSelect"></select><button class="icon-btn" type="button" id="btnAddPayee"><i class="fa-solid fa-plus"></i></button><button class="icon-btn danger" type="button" id="btnDeletePayee" title="Delete payee"><i class="fa-solid fa-trash"></i></button></div></div>
+            <div><label class="field-label">Payment Method</label><select id="paymentMethod"><option>Bank transfer</option><option>Cash</option><option>Cheque</option><option>JomPAY</option></select></div>
+            <div><label class="field-label">Purpose</label><input type="text" id="purpose" placeholder="Payment purpose" /></div>
+          </div>
+          <div class="grid-3" style="margin-top:12px;">
+            <div id="bankFields"><label class="field-label">Bank Name</label><div class="field"><select id="bankSelect"></select><button class="icon-btn" type="button" id="btnAddBank"><i class="fa-solid fa-plus"></i></button></div></div>
+            <div id="bankAcctField"><label class="field-label">Bank A/c No.</label><input type="text" id="payeeBankAcct" /></div>
+            <div id="chequeField" style="display:none;"><label class="field-label">Cheque No.</label><input type="text" id="chequeNo" /></div>
+            <div id="jompayFields" style="display:none;"><label class="field-label">Biller Code</label><input type="text" id="billerCode" /><label class="field-label" style="margin-top:8px;">Ref No.</label><input type="text" id="refNo" /></div>
+          </div>
+          <div class="card" style="margin:16px 0 12px;background:#fbfaf8;">
+            <h3 class="card-title" style="font-size:15px;margin-bottom:8px;">Line Items</h3>
+            <table>
+              <thead><tr><th style="width:40px;">No.</th><th style="width:120px;">Date</th><th>Particulars</th><th style="width:120px;text-align:right;">Amount (RM)</th><th style="width:40px;"></th></tr></thead>
+              <tbody id="pvLinesBody"></tbody>
+              <tfoot><tr><td colspan="5"><button class="btn secondary small" type="button" id="btnAddLine"><i class="fa-solid fa-plus"></i> Add line</button></td></tr><tr class="table-footer-row"><td colspan="4">Total (RM):</td><td id="pvTotalCell">0.00</td></tr></tfoot>
+            </table>
+          </div>
+          <div class="card" style="margin-bottom:12px;background:#fbfaf8;">
+            <label class="field-label">Attachments</label>
+            <div class="field" style="gap:10px;"><input type="file" id="attachmentFiles" multiple style="background:#fff;padding:7px;border:1px solid var(--border);border-radius:10px;flex:2;" /><button class="btn small secondary" type="button" id="btnUploadFiles"><i class="fa-solid fa-upload"></i> Upload</button></div>
+            <div class="field" style="margin-top:8px;"><input type="text" id="attachmentInput" placeholder="Or paste URL" /><button class="icon-btn" type="button" id="btnAddAttachment"><i class="fa-solid fa-plus"></i></button></div>
+            <div id="attachmentListContainer" class="muted" style="margin-top:6px;">No attachments.</div>
+          </div>
+          <div class="card" style="margin-bottom:12px;background:#fbfaf8;">
+            <h3 class="card-title" style="font-size:15px;margin-bottom:8px;">Declaration & Confirmation</h3>
+            <div style="background:#fff;padding:12px;border-radius:8px;border:1px solid var(--border);">
+              <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;">
+                <input type="checkbox" id="confirmDeclaration" style="margin-top:3px;width:18px;height:18px;" />
+                <span style="font-size:13px;">I hereby confirm that the information provided is true and accurate, and I authorize this payment request.</span>
+              </label>
+            </div>
+          </div>
+          <div style="text-align:right;"><button class="btn" type="button" id="btnSubmitPV"><i class="fa-solid fa-paper-plane"></i> Submit PV</button><button class="btn secondary" type="button" id="btnSaveFavourite" style="margin-left:8px;"><i class="fa-regular fa-star"></i> Save Favourite</button></div>
+        </div>
+      </section>
+
+      <!-- VIEW: TRACK STATUS (Public) -->
+      <section id="view-track" class="view">
+        <div class="card">
+          <h3 class="card-title">Track Your Claim</h3>
+          <p class="card-subtitle">Search by PV number, applicant name, payee, or amount</p>
+          <div class="grid-2" style="margin:20px 0;gap:12px;">
+            <div>
+              <label class="field-label">PV Number or Tracking Code</label>
+              <input type="text" id="trackingInput" placeholder="PV-2026-0001 or tracking code" />
+            </div>
+            <div>
+              <label class="field-label">Or Search by Name/Payee/Amount</label>
+              <input type="text" id="trackingSearchInput" placeholder="Applicant name, payee, or amount (e.g. 1200)" />
+            </div>
+          </div>
+          <div style="margin-bottom:20px;">
+            <button class="btn" type="button" id="btnTrackStatus"><i class="fa-solid fa-search"></i> Track by PV/Code</button>
+            <button class="btn secondary" type="button" id="btnSearchPVs" style="margin-left:8px;"><i class="fa-solid fa-magnifying-glass"></i> Search All</button>
+          </div>
+          <div id="trackingResult" style="display:none;">
+            <div class="card" style="background:#fbfaf8;">
+              <div id="trackingPvInfo"></div>
+              <h4 style="margin:16px 0 10px;">Status Timeline</h4>
+              <div id="trackingTimeline"></div>
+            </div>
+          </div>
+          <div id="searchResults" style="display:none;">
+            <div class="card" style="background:#fbfaf8;">
+              <h4 style="margin:0 0 12px;">Search Results</h4>
+              <div class="table-scroll">
+                <table><thead><tr><th>PV No</th><th>Date</th><th>Applicant</th><th>Payee</th><th>Amount</th><th>Status</th><th></th></tr></thead><tbody id="searchResultsBody"></tbody></table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: DEPT HEAD VERIFICATION -->
+      <section id="view-depthead" class="view">
+        <div class="card">
+          <div class="card-title-row"><div><h3 class="card-title">Department Head Verification</h3><p class="card-subtitle">PVs from your department awaiting your verification</p></div><button class="btn small" type="button" id="btnRefreshDeptHead"><i class="fa-solid fa-rotate"></i></button></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>PV No</th><th>Date</th><th>Applicant</th><th>Purpose</th><th>Amount</th><th>Status</th><th style="width:180px;"></th></tr></thead><tbody id="deptHeadPendingBody"><tr><td colspan="7" class="muted">Loading...</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title-row"><div><h3 class="card-title"><i class="fa-solid fa-check" style="color:#16a34a;"></i> Verified by You</h3></div></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>PV No</th><th>Date</th><th>Applicant</th><th>Purpose</th><th>Amount</th><th>Status</th><th style="width:120px;"></th></tr></thead><tbody id="deptHeadVerifiedBody"><tr><td colspan="7" class="muted">None.</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title-row"><div><h3 class="card-title"><i class="fa-solid fa-building" style="color:var(--brand);"></i> All Departments</h3><p class="card-subtitle">Departments and their appointed heads</p></div><button class="btn small" type="button" id="btnRefreshDepts"><i class="fa-solid fa-rotate"></i></button></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>Department Name</th><th>Head Name</th><th>Head Email</th><th id="deptActionsHeader" style="width:100px;display:none;"></th></tr></thead><tbody id="departmentsListBody"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody></table>
+          </div>
+          <div id="addDeptForm" style="display:none;margin-top:12px;padding:12px;background:#f0f0f0;border-radius:8px;">
+            <div class="grid-3" style="gap:10px;">
+              <input type="text" id="newDeptName" placeholder="Department name" />
+              <input type="text" id="newDeptHeadName" placeholder="Head name" />
+              <input type="email" id="newDeptHeadEmail" placeholder="Head email" />
+            </div>
+            <div style="margin-top:10px;"><button class="btn small" type="button" id="btnSaveNewDept">Save Department</button> <button class="btn small secondary" type="button" id="btnCancelNewDept">Cancel</button></div>
+          </div>
+          <div id="addDeptBtnWrap" style="margin-top:12px;display:none;"><button class="btn small" type="button" id="btnShowAddDept"><i class="fa-solid fa-plus"></i> Add Department</button></div>
+        </div>
+      </section>
+
+      <!-- VIEW: MY CLAIMS -->
+      <section id="view-claims" class="view">
+        <div class="card">
+          <div class="card-title-row"><div><h3 class="card-title">My Claims</h3></div><button class="btn small" type="button" id="btnLoadClaims"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
+          <div class="search-bar">
+            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" id="myClaimsSearch" placeholder="Search PV number, dept, description..." onkeyup="filterMyClaimsTable()">
+          </div>
+          <div class="table-scroll">
+            <table id="myClaimsTable">
+              <thead><tr>
+                <th style="cursor:pointer;" onclick="sortTable('myClaimsTable', 0)">PV No ↕</th>
+                <th style="cursor:pointer;" onclick="sortTable('myClaimsTable', 1)">Date ↕</th>
+                <th style="cursor:pointer;" onclick="sortTable('myClaimsTable', 2)">Applicant ↕</th>
+                <th style="cursor:pointer;" onclick="sortTable('myClaimsTable', 3)">Payee ↕</th>
+                <th style="cursor:pointer;" onclick="sortTable('myClaimsTable', 4)">Dept ↕</th>
+                <th style="cursor:pointer;text-align:right;" onclick="sortTable('myClaimsTable', 5)">Amount ↕</th>
+                <th>Status</th>
+                <th style="width:200px;"></th>
+              </tr></thead>
+              <tbody id="myClaimsBody"><tr><td colspan="8" class="muted">No PVs found.</td></tr></tbody>
+            </table>
+          </div>
+          <div class="summary-boxes" style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;">
+            <div class="summary-box" style="flex:1;min-width:150px;background:#fef3c7;padding:12px 16px;border-radius:10px;text-align:center;">
+              <div class="muted" style="font-size:12px;">Pending/Reviewed</div>
+              <div id="claimsPendingTotal" style="font-size:20px;font-weight:700;color:#d97706;">RM 0.00</div>
+            </div>
+            <div class="summary-box" style="flex:1;min-width:150px;background:#dcfce7;padding:12px 16px;border-radius:10px;text-align:center;">
+              <div class="muted" style="font-size:12px;">Approved</div>
+              <div id="claimsApprovedTotal" style="font-size:20px;font-weight:700;color:#16a34a;">RM 0.00</div>
+            </div>
+            <div class="summary-box" style="flex:1;min-width:150px;background:#e0e7ff;padding:12px 16px;border-radius:10px;text-align:center;">
+              <div class="muted" style="font-size:12px;">Grand Total</div>
+              <div id="claimsGrandTotal" style="font-size:20px;font-weight:700;color:#4338ca;">RM 0.00</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: ALL PVs (NEW) -->
+      <section id="view-allpvs" class="view">
+        <div class="card">
+          <div class="card-title-row">
+            <div><h3 class="card-title">All Payment Vouchers</h3><p class="card-subtitle">Master view for Finance Admin & Signatories</p></div>
+            <div class="filter-row">
+              <select id="allPvsStatusFilter"><option value="">All Statuses</option><option value="PENDING">Pending</option><option value="REVIEWED">Reviewed</option><option value="APPROVED">Approved</option><option value="REJECTED">Rejected</option></select>
+              <button class="btn small" type="button" id="btnLoadAllPvs"><i class="fa-solid fa-rotate"></i> Refresh</button>
+            </div>
+          </div>
+          <div class="search-bar">
+            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" id="allPvsSearch" placeholder="Search PV number, payee, description..." onkeyup="filterAllPvsTable()">
+          </div>
+          <div class="table-scroll">
+            <table><thead><tr><th>PV No</th><th>Date</th><th>Applicant</th><th>Dept</th><th>Payee</th><th>Amount</th><th>Status</th><th style="width:160px;"></th></tr></thead><tbody id="allPvsBody"><tr><td colspan="8" class="muted">Loading...</td></tr></tbody></table>
+          </div>
+          <div id="allPvsArchive"></div>
+        </div>
+      </section>
+
+      <!-- VIEW: APPROVALS -->
+      <section id="view-approvals" class="view">
+        <div class="card">
+          <div class="card-title-row"><div><h3 class="card-title">Pending Review</h3><p class="card-subtitle">PVs awaiting Finance Admin review</p></div><button class="btn small" type="button" id="btnRefreshApprovals"><i class="fa-solid fa-rotate"></i></button></div>
+          <div class="search-bar">
+            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" id="approvalsSearch" placeholder="Search..." onkeyup="filterApprovalsTable()">
+          </div>
+          <div class="table-scroll">
+            <table><thead><tr><th>PV No</th><th>Date</th><th>Applicant</th><th>Payee</th><th>Amount</th><th>Status</th><th style="width:220px;"></th></tr></thead><tbody id="approvalsTableBody"><tr><td colspan="7" class="muted">No PVs pending.</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title-row"><div><h3 class="card-title"><i class="fa-solid fa-check" style="color:#16a34a;"></i> Already Reviewed</h3><p class="card-subtitle">PVs sent to Signatories</p></div></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>PV No</th><th>Date</th><th>Applicant</th><th>Payee</th><th>Amount</th><th>Status</th><th style="width:220px;"></th></tr></thead><tbody id="reviewedTableBody"><tr><td colspan="7" class="muted">None.</td></tr></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: SIGNATORIES -->
+      <section id="view-signatories" class="view">
+        <div class="card">
+          <div class="card-title-row"><div><h3 class="card-title">Pending Signatory Approval</h3><p class="card-subtitle">Bishop/Treasurer/Secretary (any 2 required)</p></div><button class="btn small" type="button" id="btnRefreshSignatories"><i class="fa-solid fa-rotate"></i></button></div>
+          <div class="search-bar">
+            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" id="signatoriesSearch" placeholder="Search..." onkeyup="filterSignatoriesTable()">
+          </div>
+          <div class="table-scroll">
+            <table><thead><tr><th>PV No</th><th>Date</th><th>Payee</th><th>Amount</th><th>Status</th><th>Approvals</th><th style="width:200px;"></th></tr></thead><tbody id="signatoriesTableBody"><tr><td colspan="7" class="muted">No PVs awaiting.</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title-row"><div><h3 class="card-title"><i class="fa-solid fa-check-double" style="color:#16a34a;"></i> Fully Approved</h3><p class="card-subtitle">PVs with 2/2 signatory approval</p></div></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>PV No</th><th>Date</th><th>Payee</th><th>Amount</th><th>Status</th><th>Approvals</th><th style="width:200px;"></th></tr></thead><tbody id="approvedTableBody"><tr><td colspan="7" class="muted">None.</td></tr></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: RECURRING -->
+      <section id="view-recurring" class="view">
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom:12px;">Recurring Expenses</h3>
+          <div class="grid-2">
+            <div><label class="field-label">Name</label><input type="text" id="recName" /><label class="field-label" style="margin-top:8px;">Payable To</label><input type="text" id="recPayee" /><label class="field-label" style="margin-top:8px;">Dept</label><select id="recDept"></select></div>
+            <div><label class="field-label">Project</label><input type="text" id="recProject" /><label class="field-label" style="margin-top:8px;">Amount (RM)</label><input type="number" step="0.01" id="recAmount" /><label class="field-label" style="margin-top:8px;">Frequency</label><select id="recFrequency"><option value="MONTHLY">Monthly</option><option value="QUARTERLY">Quarterly</option><option value="ANNUAL">Annual</option></select></div>
+          </div>
+          <div class="grid-2" style="margin-top:12px;"><div><label class="field-label">Next Due</label><input type="date" id="recNextDate" /></div><div><label class="field-label">Notes</label><textarea id="recNotes"></textarea></div></div>
+          <div style="margin-top:12px;text-align:right;"><button class="btn" type="button" id="btnSaveRecurring">Save Recurring</button></div>
+        </div>
+        <div class="card"><h3 class="card-title" style="font-size:15px;margin-bottom:8px;">Existing Recurring</h3><table><thead><tr><th>Name</th><th>Payee</th><th>Amount</th><th>Freq</th><th>Next Due</th><th style="width:150px;"></th></tr></thead><tbody id="recurringTableBody"><tr><td colspan="6" class="muted">None.</td></tr></tbody></table></div>
+      </section>
+
+      <!-- VIEW: FAVOURITES -->
+      <section id="view-favourites" class="view">
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom:8px;">Favourites</h3>
+          <table><thead><tr><th>Name</th><th>Payee</th><th>Dept</th><th>Amount</th><th style="width:150px;"></th></tr></thead><tbody id="favouritesTableBody"><tr><td colspan="5" class="muted">None.</td></tr></tbody></table>
+        </div>
+      </section>
+
+      <!-- VIEW: SETTINGS -->
+      <section id="view-settings" class="view">
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom:12px;">Settings</h3>
+          <div class="grid-2">
+            <div class="card" style="margin:0;background:#fbfaf8;"><h4 style="margin:0 0 8px;">Test Mode</h4><div class="field"><select id="testRoleSelect"><option value="">Off</option><option value="ADMIN">Finance Admin</option><option value="BISHOP">Bishop</option><option value="TREASURER">Treasurer</option><option value="SECRETARY">Secretary</option></select><button class="btn small secondary" type="button" id="btnApplyTestRole">Apply</button></div><div class="muted" style="margin-top:8px;">Current: <strong id="testRoleLabel">Off</strong></div></div>
+            <div class="card" style="margin:0;background:#fbfaf8;"><h4 style="margin:0 0 8px;">Debug & Cleanup</h4><button class="btn small" type="button" id="btnDebugContext">Run Debug</button> <button class="btn small danger" type="button" id="btnCleanupPVs">Cleanup Invalid PVs</button><pre id="debugOutput" style="margin-top:8px;font-size:10px;background:#fff;padding:8px;border-radius:6px;max-height:200px;overflow:auto;"></pre></div>
+          </div>
+          <div class="card" style="margin-top:14px;background:#fbfaf8;" id="signatureAdminCard">
+            <div class="card-title-row"><div><h4 style="margin:0;">Signatures</h4></div><button class="btn small secondary" type="button" id="btnRefreshSignatures"><i class="fa-solid fa-rotate"></i></button></div>
+            <div class="grid-2">
+              <div><label class="field-label">Role</label><select id="sigRoleSelect"><option value="FINANCE_ADMIN">Finance Admin</option><option value="BISHOP">Bishop</option><option value="TREASURER">Treasurer</option><option value="SECRETARY">Secretary</option></select><label class="field-label" style="margin-top:8px;">Name</label><input type="text" id="sigDisplayName" /><label class="field-label" style="margin-top:8px;">Image</label><input type="file" id="sigFile" accept="image/*" /><button class="btn small" type="button" id="btnSaveSignature" style="margin-top:8px;"><i class="fa-solid fa-save"></i> Save</button></div>
+              <div><label class="field-label">Stored Signatures</label><div id="sigStoredList" class="muted">Loading...</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- MODAL -->
+  <div id="pvDetailModal" class="modal">
+    <div class="modal-backdrop" id="pvDetailBackdrop">
+      <div class="modal-card" onclick="event.stopPropagation();">
+        <div class="modal-header"><h3 class="modal-title" id="mdTitle">PV Details</h3><button class="modal-close" type="button" id="btnCloseModal">&times;</button></div>
+        <div class="modal-body" id="mdBody"></div>
+        <div class="modal-footer" id="mdFooter"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PV PREVIEW MODAL -->
+  <div class="modal pv-preview-modal" id="pvPreviewModal">
+    <div class="modal-backdrop" onclick="closePvPreview()">
+      <div class="modal-card" style="max-width:850px;" onclick="event.stopPropagation();">
+        <div class="pv-preview-status" id="pvPreviewStatus">Loading...</div>
+        <div class="modal-header">
+          <h3 class="modal-title">Payment Voucher Preview</h3>
+          <button class="modal-close" type="button" onclick="closePvPreview()">&times;</button>
+        </div>
+        <div class="modal-body" id="pvPreviewBody" style="padding:0;max-height:70vh;overflow-y:auto;">
+          <div id="pvPreviewContent" style="padding:20px;"></div>
+        </div>
+        <div class="modal-footer" id="pvPreviewFooter">
+          <button class="btn secondary" onclick="closePvPreview()">Close</button>
+          <button class="btn" id="btnPreviewPrint" onclick="printCurrentPV()"><i class="fa-solid fa-print"></i> Print PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="toastWrap"></div>
+
+  <!-- JAVASCRIPT PART 2 GOES HERE -->
+  <script>
+  /* === PART 2 START === */
+  /* === PART 2: Core JavaScript === */
+  
+  /* ============================================================
+     GLOBAL STATE
+     ============================================================ */
+  var LCM = {
+    user: {},
+    lookups: {},
+    attachments: [],
+    lineCounter: 0,
+    currentView: "pv",
+    recurring: [],
+    favourites: []
+  };
+
+  /* ============================================================
+     SERVER COMMUNICATION
+     ============================================================ */
+  function runServer(fn, args, onSuccess, onError) {
+    var runner = google.script.run
+      .withSuccessHandler(function(res) { if (onSuccess) onSuccess(res); })
+      .withFailureHandler(function(e) {
+        console.error("Server error [" + fn + "]:", e);
+        if (onError) onError(e);
+        else toastErr("Error: " + (e.message || e));
+      });
+
+    if (args === undefined || args === null) {
+      runner[fn]();
+    } else if (Array.isArray(args)) {
+      switch (args.length) {
+        case 0: runner[fn](); break;
+        case 1: runner[fn](args[0]); break;
+        case 2: runner[fn](args[0], args[1]); break;
+        case 3: runner[fn](args[0], args[1], args[2]); break;
+        case 4: runner[fn](args[0], args[1], args[2], args[3]); break;
+        default: runner[fn](args[0], args[1], args[2], args[3], args[4]);
+      }
+    } else {
+      runner[fn](args);
+    }
+  }
+
+  /* ============================================================
+     TOAST NOTIFICATIONS
+     ============================================================ */
+  function toast(type, title, msg, actions) {
+    var wrap = document.getElementById("toastWrap");
+    var div = document.createElement("div");
+    div.className = "toast " + (type || "ok");
+
+    var actionsHtml = "";
+    if (actions && actions.length) {
+      actionsHtml = '<div class="toast-actions">';
+      actions.forEach(function(a, i) {
+        actionsHtml += '<button data-idx="' + i + '">' + (a.label || "OK") + '</button>';
+      });
+      actionsHtml += '</div>';
+    }
+
+    div.innerHTML =
+      '<div class="toast-top"><div class="toast-dot"></div><div class="toast-title">' + (title || "") + '</div></div>' +
+      '<div class="toast-msg">' + (msg || "") + '</div>' + actionsHtml;
+
+    wrap.appendChild(div);
+
+    if (actions && actions.length) {
+      div.querySelectorAll("[data-idx]").forEach(function(btn) {
+        btn.onclick = function() {
+          var idx = parseInt(btn.getAttribute("data-idx"));
+          if (actions[idx] && actions[idx].onClick) actions[idx].onClick();
+          removeToast(div);
+        };
+      });
+    }
+
+    setTimeout(function() { div.classList.add("show"); }, 10);
+    if (!actions || !actions.length) {
+      setTimeout(function() { removeToast(div); }, 4000);
+    }
+  }
+
+  function removeToast(div) {
+    div.classList.remove("show");
+    setTimeout(function() { if (div.parentNode) div.parentNode.removeChild(div); }, 200);
+  }
+
+  function toastOk(msg) { toast("ok", "Success", msg); }
+  function toastWarn(msg) { toast("warn", "Warning", msg); }
+  function toastErr(msg) { toast("err", "Error", msg); }
+
+  /* ============================================================
+     MODAL FUNCTIONS
+     ============================================================ */
+  function openModal(id) {
+    var modal = document.getElementById(id);
+    if (modal) modal.classList.add("open");
+  }
+
+  function closeModal(id) {
+    var modal = document.getElementById(id);
+    if (modal) modal.classList.remove("open");
+  }
+
+  /* ============================================================
+     NAVIGATION
+     ============================================================ */
+  var VIEW_CONFIG = {
+    pv:         { title: "Payment Vouchers", sub: "Submit a new PV." },
+    claims:     { title: "My Claims", sub: "Your submitted PVs.", onEnter: loadMyClaims },
+    track:      { title: "Track Status", sub: "Check your claim status.", onEnter: function() {} },
+    depthead:   { title: "Department Head", sub: "Verify PVs from your department.", onEnter: loadDeptHeadPVs },
+    allpvs:     { title: "All PVs", sub: "Master view for Admin & Signatories.", onEnter: loadAllPvs },
+    approvals:  { title: "Pending Review", sub: "Finance Admin review queue.", onEnter: loadApprovals },
+    signatories:{ title: "Signatory Approval", sub: "Bishop/Treasurer/Secretary.", onEnter: loadSignatories },
+    recurring:  { title: "Recurring Expenses", sub: "Monthly/yearly expenses.", onEnter: loadRecurring },
+    favourites: { title: "Favourites", sub: "Saved PV templates.", onEnter: loadFavourites },
+    settings:   { title: "Settings", sub: "Configuration.", onEnter: function() { refreshStoredSignatures(); refreshSigCardVisibility(); } }
+  };
+
+  function setView(viewName) {
+    document.querySelectorAll(".view").forEach(function(v) { v.classList.remove("active"); });
+    document.querySelectorAll(".nav-link").forEach(function(n) { n.classList.remove("active"); });
+
+    var viewEl = document.getElementById("view-" + viewName);
+    if (viewEl) viewEl.classList.add("active");
+
+    var navBtn = document.querySelector('.nav-link[data-view="' + viewName + '"]');
+    if (navBtn) navBtn.classList.add("active");
+
+    var cfg = VIEW_CONFIG[viewName] || { title: viewName, sub: "" };
+    document.getElementById("pageTitle").textContent = cfg.title;
+    document.getElementById("pageSubtitle").textContent = cfg.sub;
+
+    LCM.currentView = viewName;
+    if (cfg.onEnter) cfg.onEnter();
+  }
+
+  function setupNav() {
+    document.querySelectorAll(".nav-link[data-view]").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        setView(btn.getAttribute("data-view"));
+      });
+    });
+  }
+
+  /* ============================================================
+     ROLE HELPERS
+     ============================================================ */
+  function getRoles() {
+    var u = LCM.user || {};
+    return {
+      isFinanceAdmin: !!u.isFinanceAdmin,
+      isBishop: !!u.isBishop,
+      isTreasurer: !!u.isTreasurer,
+      isSecretary: !!u.isSecretary,
+      isSignatory: !!u.isSignatory
+    };
+  }
+
+  function canShare() {
+    var r = getRoles();
+    return r.isFinanceAdmin || r.isBishop || r.isTreasurer || r.isSecretary;
+  }
+
+  /* ============================================================
+     POPULATE LOOKUPS
+     ============================================================ */
+  function populateLookups() {
+    var L = LCM.lookups || {};
+
+    // Departments - now comes as array of objects with name, head_name, head_email
+    var deptSelect = document.getElementById("deptSelect");
+    var recDept = document.getElementById("recDept");
+    deptSelect.innerHTML = '<option value="">(select)</option>';
+    recDept.innerHTML = '<option value="">(select)</option>';
+    
+    // Handle both old format (array of strings) and new format (array of objects or departmentNames)
+    var deptList = L.departmentNames || L.departments || [];
+    if (deptList.length > 0 && typeof deptList[0] === "object") {
+      deptList = deptList.map(function(d) { return d.name || d; });
+    }
+    deptList.forEach(function(d) {
+      if (d) {
+        deptSelect.innerHTML += '<option value="' + d + '">' + d + '</option>';
+        recDept.innerHTML += '<option value="' + d + '">' + d + '</option>';
+      }
+    });
+
+    // Store full department info for later use
+    LCM.departments = L.departments || [];
+
+    // Projects
+    var projectSelect = document.getElementById("projectSelect");
+    projectSelect.innerHTML = '<option value="">(none)</option>';
+    (L.projects || []).forEach(function(p) {
+      projectSelect.innerHTML += '<option value="' + p + '">' + p + '</option>';
+    });
+
+    // Banks
+    var bankSelect = document.getElementById("bankSelect");
+    bankSelect.innerHTML = '<option value="">(select)</option>';
+    (L.banks || []).forEach(function(b) {
+      bankSelect.innerHTML += '<option value="' + b + '">' + b + '</option>';
+    });
+
+    // Payees
+    var payeeSelect = document.getElementById("payeeSelect");
+    payeeSelect.innerHTML = '<option value="">(select)</option>';
+    (L.payees || []).forEach(function(p) {
+      var name = p.name || p;
+      var id = p.id || "";
+      payeeSelect.innerHTML += '<option value="' + name + '" data-id="' + id + '">' + name + '</option>';
+    });
+  }
+
+  /* ============================================================
+     PAYMENT METHOD UI
+     ============================================================ */
+  function updatePaymentMethodUI() {
+    var method = document.getElementById("paymentMethod").value;
+    var bankFields = document.getElementById("bankFields");
+    var bankAcctField = document.getElementById("bankAcctField");
+    var chequeField = document.getElementById("chequeField");
+    var jompayFields = document.getElementById("jompayFields");
+
+    bankFields.style.display = "block";
+    bankAcctField.style.display = "block";
+    chequeField.style.display = "none";
+    if (jompayFields) jompayFields.style.display = "none";
+
+    if (method === "Cash") {
+      bankFields.style.display = "none";
+      bankAcctField.style.display = "none";
+    } else if (method === "Cheque") {
+      chequeField.style.display = "block";
+    } else if (method === "JomPAY") {
+      bankFields.style.display = "none";
+      bankAcctField.style.display = "none";
+      if (jompayFields) jompayFields.style.display = "block";
+    }
+  }
+
+  /* ============================================================
+     LINE ITEMS
+     ============================================================ */
+  function addLineRow() {
+    var body = document.getElementById("pvLinesBody");
+    var idx = ++LCM.lineCounter;
+
+    var tr = document.createElement("tr");
+    tr.setAttribute("data-row", idx);
+    tr.innerHTML =
+      '<td>' + idx + '</td>' +
+      '<td><input type="date" class="line-date"></td>' +
+      '<td><textarea class="line-desc" placeholder="Description"></textarea></td>' +
+      '<td><input type="number" step="0.01" class="line-amt" value="0.00" style="text-align:right;width:100%;"></td>' +
+      '<td><button class="icon-btn danger" type="button" onclick="removeLineRow(this)"><i class="fa-solid fa-trash"></i></button></td>';
+
+    body.appendChild(tr);
+    tr.querySelector(".line-amt").addEventListener("input", recalcTotal);
+    recalcTotal();
+  }
+
+  function removeLineRow(btn) {
+    var tr = btn.closest("tr");
+    if (tr) tr.remove();
+    recalcTotal();
+  }
+
+  function recalcTotal() {
+    var total = 0;
+    document.querySelectorAll("#pvLinesBody .line-amt").forEach(function(el) {
+      var val = parseFloat(el.value) || 0;
+      total += val;
+    });
+    document.getElementById("pvTotalCell").textContent = total.toFixed(2);
+  }
+
+  function collectLineItems() {
+    var out = [];
+    document.querySelectorAll("#pvLinesBody tr").forEach(function(tr) {
+      var dateEl = tr.querySelector(".line-date");
+      var descEl = tr.querySelector(".line-desc");
+      var amtEl = tr.querySelector(".line-amt");
+
+      var date = dateEl ? dateEl.value : "";
+      var desc = descEl ? descEl.value : "";
+      var amt = parseFloat(amtEl ? amtEl.value : 0) || 0;
+
+      if (desc || amt) {
+        out.push({ date: date, description: desc, amount: amt });
+      }
+    });
+    return out;
+  }
+
+  /* ============================================================
+     ATTACHMENTS
+     ============================================================ */
+  function addAttachment() {
+    var input = document.getElementById("attachmentInput");
+    var url = (input.value || "").trim();
+    if (!url) { toastWarn("Paste a URL first."); return; }
+
+    LCM.attachments.push(url);
+    input.value = "";
+    renderAttachments();
+    toastOk("Attachment added.");
+  }
+
+  function renderAttachments() {
+    var container = document.getElementById("attachmentListContainer");
+    if (!LCM.attachments.length) {
+      container.textContent = "No attachments.";
+      return;
+    }
+    var html = '<ul class="attachment-list">';
+    LCM.attachments.forEach(function(u, idx) {
+      html += '<li><a href="' + u + '" target="_blank">Attachment ' + (idx + 1) + '</a> ' +
+        '<button class="btn small danger" type="button" onclick="removeAttachment(' + idx + ')"><i class="fa-solid fa-xmark"></i></button></li>';
+    });
+    html += '</ul>';
+    container.innerHTML = html;
+  }
+
+  function removeAttachment(idx) {
+    LCM.attachments.splice(idx, 1);
+    renderAttachments();
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() { resolve(reader.result); };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function uploadFiles() {
+    var input = document.getElementById("attachmentFiles");
+    var files = input.files;
+    if (!files.length) { toastWarn("Choose files first."); return; }
+
+    toast("warn", "Uploading", "Please wait...");
+    var uploaded = 0;
+    var total = files.length;
+
+    (function next(i) {
+      if (i >= total) {
+        renderAttachments();
+        toastOk("Uploaded " + uploaded + " file(s).");
+        input.value = "";
+        return;
+      }
+
+      readFileAsDataUrl(files[i]).then(function(dataUrl) {
+        runServer("uploadAttachmentFile", [dataUrl, files[i].name, files[i].type], function(res) {
+          if (res && res.ok && res.url) {
+            LCM.attachments.push(res.url);
+            uploaded++;
+          }
+          next(i + 1);
+        }, function() { next(i + 1); });
+      }).catch(function() { next(i + 1); });
+    })(0);
+  }
+
+  /* ============================================================
+     STATUS PILL
+     ============================================================ */
+  function renderStatusPill(status, approvalsCount) {
+    status = String(status || "").toUpperCase();
+    var cls = "pill-pending";
+    var label = status || "N/A";
+    
+    if (status === "PENDING") { cls = "pill-pending"; label = "PENDING REVIEW"; }
+    else if (status === "REVIEWED") { cls = "pill-reviewed"; label = "FA REVIEWED"; }
+    else if (status === "PENDING_MINISTRY") { cls = "pill-pending-ministry"; label = "PENDING MINISTRY"; }
+    else if (status === "MINISTRY_VERIFIED") { cls = "pill-ministry-verified"; label = "MINISTRY VERIFIED"; }
+    else if (status === "PENDING_SIGNATORY") { 
+      var count = approvalsCount || "0/2";
+      if (count === "0/2" || count === 0) { cls = "pill-pending-signatory-0"; label = "SIGNATORY (0/2)"; }
+      else if (count === "1/2" || count === 1) { cls = "pill-pending-signatory-1"; label = "SIGNATORY (1/2)"; }
+      else { cls = "pill-pending-signatory-0"; label = "SIGNATORY (" + count + ")"; }
+    }
+    else if (status === "APPROVED") { cls = "pill-approved"; label = "APPROVED"; }
+    else if (status === "REJECTED") { cls = "pill-rejected"; label = "REJECTED"; }
+    else if (status === "CANCELLED") { cls = "pill-cancelled"; label = "CANCELLED"; }
+    else if (status === "PENDING_HEAD") { cls = "pill-pending"; label = "PENDING HEAD"; }
+    else if (status === "REJECTED_HEAD") { cls = "pill-rejected"; label = "REJECTED"; }
+    
+    return '<span class="tag-pill ' + cls + '">' + label + '</span>';
+  }
+
+  function getStatusDisplayInfo(status, approvalsCount) {
+    status = String(status || "").toUpperCase();
+    var info = { label: status, cssClass: "pending", description: "" };
+    
+    if (status === "PENDING") { 
+      info = { label: "Pending Finance Admin Review", cssClass: "pending", description: "Awaiting Finance Admin to review this PV" };
+    } else if (status === "REVIEWED") { 
+      info = { label: "Finance Admin Reviewed", cssClass: "reviewed", description: "Finance Admin has reviewed. Awaiting Ministry Head verification." };
+    } else if (status === "PENDING_MINISTRY") { 
+      info = { label: "Pending Ministry PIC Verification", cssClass: "pending-ministry", description: "Awaiting Ministry/Department Head to verify" };
+    } else if (status === "MINISTRY_VERIFIED") { 
+      info = { label: "Ministry PIC Verified", cssClass: "ministry-verified", description: "Ministry Head verified. Awaiting Signatory approval." };
+    } else if (status === "PENDING_SIGNATORY") { 
+      var count = approvalsCount || "0/2";
+      if (count === "0/2" || count === 0) {
+        info = { label: "Pending Signatory Approval (0/2)", cssClass: "pending-signatory-0", description: "Awaiting 2 signatories to approve" };
+      } else {
+        info = { label: "Pending Signatory Approval (1/2)", cssClass: "pending-signatory-1", description: "1 signatory approved. Awaiting 1 more." };
+      }
+    } else if (status === "APPROVED") { 
+      info = { label: "APPROVED", cssClass: "approved", description: "This PV has been fully approved" };
+    } else if (status === "REJECTED") { 
+      info = { label: "REJECTED", cssClass: "rejected", description: "This PV has been rejected" };
+    } else if (status === "CANCELLED") { 
+      info = { label: "CANCELLED", cssClass: "cancelled", description: "This PV has been cancelled" };
+    }
+    
+    return info;
+  }
+
+  /* ============================================================
+     DATE FORMATTING - Convert to dd/mm/yyyy
+     ============================================================ */
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    try {
+      var d = new Date(dateStr);
+      if (isNaN(d.getTime())) return String(dateStr).substring(0, 10);
+      var day = ("0" + d.getDate()).slice(-2);
+      var month = ("0" + (d.getMonth() + 1)).slice(-2);
+      var year = d.getFullYear();
+      return day + "/" + month + "/" + year;
+    } catch (e) {
+      return String(dateStr).substring(0, 10);
+    }
+  }
+
+  /* ============================================================
+     LOCAL ADDERS (Dept / Project / Bank)
+     ============================================================ */
+  function promptAddDept() {
+    var v = prompt("New Department / Ministry name:");
+    if (!v) return;
+    var sel = document.getElementById("deptSelect");
+    var opt = document.createElement("option");
+    opt.value = opt.textContent = v;
+    sel.appendChild(opt);
+    sel.value = v;
+
+    var sel2 = document.getElementById("recDept");
+    var opt2 = document.createElement("option");
+    opt2.value = opt2.textContent = v;
+    sel2.appendChild(opt2);
+
+    toastOk("Department added locally.");
+  }
+
+  function promptAddProject() {
+    var v = prompt("New Project name:");
+    if (!v) return;
+    var sel = document.getElementById("projectSelect");
+    var opt = document.createElement("option");
+    opt.value = opt.textContent = v;
+    sel.appendChild(opt);
+    sel.value = v;
+    toastOk("Project added locally.");
+  }
+
+  function promptAddBank() {
+    var v = prompt("New Bank name:");
+    if (!v) return;
+    var sel = document.getElementById("bankSelect");
+    var opt = document.createElement("option");
+    opt.value = opt.textContent = v;
+    sel.appendChild(opt);
+    sel.value = v;
+    toastOk("Bank added locally.");
+  }
+
+  /* ============================================================
+     PAYEE ADD / DELETE
+     ============================================================ */
+  function openAddPayeeModal() {
+    var name = prompt("New Payee name (vendor / employee):");
+    if (!name) return;
+
+    toast("warn", "Saving", "Adding payee...");
+    runServer("savePayee", { name: name.trim() }, function(res) {
+      if (res && res.ok) {
+        toastOk("Payee added.");
+        // Refresh lookups
+        runServer("getLookups", undefined, function(lookups) {
+          LCM.lookups = lookups || {};
+          populateLookups();
+          document.getElementById("payeeSelect").value = name.trim();
+        });
+      } else {
+        toastErr((res && res.error) || "Failed to add payee.");
+      }
+    });
+  }
+
+  function deleteSelectedPayee() {
+    var sel = document.getElementById("payeeSelect");
+    var selectedOption = sel.options[sel.selectedIndex];
+    
+    if (!selectedOption || !selectedOption.value) {
+      toastWarn("Select a payee to delete first.");
+      return;
+    }
+
+    var payeeName = selectedOption.value;
+    var payeeId = selectedOption.getAttribute("data-id") || payeeName;
+
+    if (!confirm("Delete payee: " + payeeName + "?")) return;
+
+    toast("warn", "Deleting", "Please wait...");
+    runServer("deletePayee", payeeId, function(res) {
+      if (res && res.ok) {
+        toastOk("Payee deleted.");
+        // Refresh lookups
+        runServer("getLookups", undefined, function(lookups) {
+          LCM.lookups = lookups || {};
+          populateLookups();
+        });
+      } else {
+        toastErr((res && res.error) || "Failed to delete payee.");
+      }
+    });
+  }
+
+  /* ============================================================
+     BUILD & VALIDATE PV PAYLOAD
+     ============================================================ */
+  function buildPvPayload() {
+    var data = {};
+    data.pvDate = document.getElementById("pvDate").value;
+    data.applicant_name = document.getElementById("applicantName").value || "";
+    data.dept = document.getElementById("deptSelect").value || "";
+    data.project = document.getElementById("projectSelect").value || "";
+    data.payee_name = document.getElementById("payeeSelect").value || "";
+    data.purpose = document.getElementById("purpose").value || "";
+    data.line_items = collectLineItems();
+    data.attachments = LCM.attachments.slice();
+    data.amount = parseFloat(document.getElementById("pvTotalCell").textContent) || 0;
+
+    data.sig_applicant_name = data.applicant_name;
+    data.sig_applicant_confirm = document.getElementById("confirmDeclaration") && document.getElementById("confirmDeclaration").checked ? "YES" : "NO";
+    data.sig_head_name = "";
+    data.sig_head_confirm = "YES"; // Department head will verify separately
+
+    var method = document.getElementById("paymentMethod").value;
+    data.payment_method = method;
+
+    if (method === "Bank transfer" || method === "Cheque") {
+      data.payee_bank_name = document.getElementById("bankSelect").value || "";
+      data.payee_bank_acct = document.getElementById("payeeBankAcct").value || "";
+      data.biller_code = "";
+      data.ref_no = "";
+    } else if (method === "JomPAY") {
+      data.payee_bank_name = "";
+      data.payee_bank_acct = "";
+      data.biller_code = document.getElementById("billerCode") ? document.getElementById("billerCode").value : "";
+      data.ref_no = document.getElementById("refNo") ? document.getElementById("refNo").value : "";
+    } else {
+      data.payee_bank_name = "";
+      data.payee_bank_acct = "";
+      data.biller_code = "";
+      data.ref_no = "";
+    }
+
+    data.cheque_no = (method === "Cheque") ? (document.getElementById("chequeNo").value || "") : "";
+    return data;
+  }
+
+  function validatePvPayload(data) {
+    if (!data.applicant_name) return "Enter Applicant name.";
+    if (!data.dept) return "Select a department.";
+    if (!data.payee_name) return "Select a payee.";
+    if (!data.line_items || !data.line_items.length) return "Add at least 1 line item.";
+    if (data.amount <= 0) return "Total must be > 0.";
+    if (data.sig_applicant_confirm !== "YES") return "Please check the declaration checkbox to confirm.";
+    return "";
+  }
+
+  function resetPvForm() {
+    LCM.lineCounter = 0;
+    LCM.editingPvNo = null; // Clear editing mode
+    document.getElementById("pvLinesBody").innerHTML = "";
+    addLineRow();
+    LCM.attachments = [];
+    renderAttachments();
+    document.getElementById("attachmentInput").value = "";
+    document.getElementById("attachmentFiles").value = "";
+    document.getElementById("sigApplicantConfirm").value = "NO";
+    document.getElementById("sigHeadConfirm").value = "NO";
+    document.getElementById("pvNumberPreview").textContent = "(auto)";
+    document.getElementById("applicantName").value = "";
+    document.getElementById("purpose").value = "";
+  }
+
+  /* ============================================================
+     SUBMIT PV
+     ============================================================ */
+  function submitPV() {
+    var btn = document.getElementById("btnSubmitPV");
+    btn.disabled = true;
+
+    var data = buildPvPayload();
+    var err = validatePvPayload(data);
+    if (err) {
+      btn.disabled = false;
+      toastWarn(err);
+      return;
+    }
+
+    // Check if editing existing PV
+    var isEditing = !!LCM.editingPvNo;
+    var serverFn = isEditing ? "updatePV" : "submitPublicPV";
+    
+    if (isEditing) {
+      data.pv_no = LCM.editingPvNo;
+    }
+
+    toast("warn", isEditing ? "Updating" : "Submitting", "Sending PV to server...");
+
+    runServer(serverFn, data, function(res) {
+      btn.disabled = false;
+
+      if (!res || !res.ok) {
+        toastErr((res && res.error) || "Submit failed.");
+        return;
+      }
+
+      var pvNo = res.pv_no || LCM.editingPvNo;
+      document.getElementById("pvNumberPreview").textContent = pvNo;
+
+      var msg = res.message || (isEditing ? "PV updated: " + pvNo : "PV created: " + pvNo);
+      
+      var buttons = [{ label: "View My Claims", onClick: function() { setView("claims"); } }];
+      
+      // Add track button if tracking token provided
+      if (res.tracking_token) {
+        buttons.push({ label: "Track Status", onClick: function() { 
+          setView("track");
+          document.getElementById("trackingInput").value = res.tracking_token;
+          trackPVStatus();
+        }});
+      }
+      
+      toast("ok", isEditing ? "Updated" : "Submitted", msg, buttons);
+
+      // Clear editing mode
+      LCM.editingPvNo = null;
+      resetPvForm();
+      loadMyClaims();
+      loadAllPvs();
+    }, function(e) {
+      btn.disabled = false;
+      toastErr("Submit failed: " + (e.message || e));
+    });
+  }
+
+  /* ============================================================
+     GET PV BY NUMBER
+     ============================================================ */
+  function getPVByNo(pvNo, callback) {
+    var token = (window.LCM_SERVER && window.LCM_SERVER.token) || "";
+    runServer("getPVByNo", [pvNo, token], function(res) {
+      var pv = (res && res.pv) ? res.pv : res;
+      if (callback) callback(pv);
+    }, function() {
+      if (callback) callback(null);
+    });
+  }
+
+  /* ============================================================
+     COPY TO CLIPBOARD
+     ============================================================ */
+  function copyToClipboard(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text);
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  /* === PART 2 END - PART 3 CONTINUES === */
+  /* === PART 3: Load functions, Modals, Recurring, Favourites, Settings, Init === */
+
+  /* ============================================================
+     MY CLAIMS
+     ============================================================ */
+  function loadMyClaims() {
+    var body = document.getElementById("myClaimsBody");
+    body.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
+
+    console.log("loadMyClaims: calling server...");
+    runServer("listMyPVsForCurrentUser", undefined, function(res) {
+      console.log("loadMyClaims: raw response:", res);
+      console.log("loadMyClaims: response type:", typeof res);
+      console.log("loadMyClaims: res.ok:", res && res.ok);
+      console.log("loadMyClaims: res.pvs:", res && res.pvs);
+      
+      var list = Array.isArray(res) ? res : (res && res.pvs) ? res.pvs : [];
+      console.log("loadMyClaims: extracted list length:", list.length);
+      
+      renderMyClaims(list);
+    }, function(err) {
+      console.error("loadMyClaims: ERROR:", err);
+      body.innerHTML = '<tr><td colspan="6" class="muted">Failed to load.</td></tr>';
+    });
+  }
+
+  function renderMyClaims(list) {
+    var body = document.getElementById("myClaimsBody");
+    var pendingEl = document.getElementById("claimsPendingTotal");
+    var approvedEl = document.getElementById("claimsApprovedTotal");
+    var grandEl = document.getElementById("claimsGrandTotal");
+    
+    if (!list || !list.length) {
+      body.innerHTML = '<tr><td colspan="8" class="muted">No PVs found.</td></tr>';
+      if (pendingEl) pendingEl.textContent = "RM 0.00";
+      if (approvedEl) approvedEl.textContent = "RM 0.00";
+      if (grandEl) grandEl.textContent = "RM 0.00";
+      return;
+    }
+
+    var pendingTotal = 0;
+    var approvedTotal = 0;
+    var grandTotal = 0;
+
+    var html = "";
+    list.forEach(function(pv) {
+      var pvNo = pv.pv_no || "";
+      var status = String(pv.status || "").toUpperCase();
+      var amount = parseFloat(pv.amount) || 0;
+      var canEdit = (status === "PENDING" || status === "PENDING_HEAD");
+
+      // Calculate totals
+      grandTotal += amount;
+      if (status === "APPROVED") {
+        approvedTotal += amount;
+      } else if (status === "PENDING" || status === "REVIEWED" || status === "PENDING_HEAD") {
+        pendingTotal += amount;
+      }
+
+      var btnView = '<button class="btn small secondary" onclick="openPvDetail(\'' + pvNo + '\',\'readonly\')">View</button>';
+      var btnEdit = canEdit ? ' <button class="btn small secondary" onclick="editPV(\'' + pvNo + '\')"><i class="fa-solid fa-pen"></i></button>' : "";
+      var btnDelete = canEdit ? ' <button class="btn small danger" onclick="deletePV(\'' + pvNo + '\')"><i class="fa-solid fa-trash"></i></button>' : "";
+      var btnPrint = (status === "APPROVED") ? ' <button class="btn small secondary" onclick="printSignedPV(\'' + pvNo + '\')"><i class="fa-solid fa-print"></i></button>' : "";
+      var btnShare = canShare() ? ' <button class="btn small secondary" onclick="sharePV(\'' + pvNo + '\')"><i class="fa-solid fa-link"></i></button>' : "";
+
+      html += "<tr>" +
+        "<td>" + pvNo + "</td>" +
+        "<td>" + formatDate(pv.date) + "</td>" +
+        "<td>" + (pv.applicant_name || "") + "</td>" +
+        "<td>" + (pv.payee_name || "") + "</td>" +
+        "<td>" + (pv.dept || "") + "</td>" +
+        '<td style="text-align:right;">' + amount.toFixed(2) + "</td>" +
+        "<td>" + renderStatusPill(pv.status) + "</td>" +
+        '<td style="text-align:right;white-space:nowrap;">' + btnView + btnEdit + btnDelete + btnPrint + btnShare + "</td>" +
+        "</tr>";
+    });
+    body.innerHTML = html;
+
+    // Update totals
+    if (pendingEl) pendingEl.textContent = "RM " + pendingTotal.toFixed(2);
+    if (approvedEl) approvedEl.textContent = "RM " + approvedTotal.toFixed(2);
+    if (grandEl) grandEl.textContent = "RM " + grandTotal.toFixed(2);
+  }
+
+  /* ============================================================
+     ALL PVs (NEW - Master View)
+     ============================================================ */
+  function loadAllPvs() {
+    var body = document.getElementById("allPvsBody");
+    body.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+
+    var statusFilter = document.getElementById("allPvsStatusFilter").value;
+    var filter = statusFilter ? { statuses: [statusFilter] } : {};
+
+    console.log("loadAllPvs: calling server with filter:", filter);
+    runServer("listAllPVs", filter, function(res) {
+      console.log("loadAllPvs: raw response:", res);
+      
+      if (!res || !res.ok) {
+        console.log("loadAllPvs: not ok, error:", res && res.error);
+        body.innerHTML = '<tr><td colspan="8" class="muted">' + ((res && res.error) || "Not authorized.") + '</td></tr>';
+        return;
+      }
+
+      var list = res.pvs || [];
+      console.log("loadAllPvs: pvs count:", list.length);
+      
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="8" class="muted">No PVs found.</td></tr>';
+        return;
+      }
+
+      var html = "";
+      list.forEach(function(pv) {
+        var pvNo = pv.pv_no || "";
+        var status = String(pv.status || "").toUpperCase();
+        var canEdit = (status === "PENDING" || status === "REVIEWED");
+        var isApproved = (status === "APPROVED");
+        var isCancelled = (status === "CANCELLED");
+
+        var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pvNo + '\')">View</button>';
+        var btnEdit = canEdit ? ' <button class="btn small secondary" onclick="editPV(\'' + pvNo + '\')"><i class="fa-solid fa-pen"></i></button>' : "";
+        var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pvNo + '\')"><i class="fa-solid fa-print"></i></button>';
+        var btnCancel = "";
+        if (!isCancelled) {
+          if (isApproved) {
+            btnCancel = ' <button class="btn small danger" onclick="revokePV(\'' + pvNo + '\')" title="Revoke"><i class="fa-solid fa-rotate-left"></i></button>';
+          } else {
+            btnCancel = ' <button class="btn small danger" onclick="cancelPV(\'' + pvNo + '\')" title="Cancel"><i class="fa-solid fa-ban"></i></button>';
+          }
+        }
+        var btnShare = canShare() ? ' <button class="btn small secondary" onclick="sharePV(\'' + pvNo + '\')"><i class="fa-solid fa-link"></i></button>' : "";
+
+        html += "<tr>" +
+          "<td>" + pvNo + "</td>" +
+          "<td>" + formatDate(pv.date) + "</td>" +
+          "<td>" + (pv.applicant_name || "") + "</td>" +
+          "<td>" + (pv.dept || "") + "</td>" +
+          "<td>" + (pv.payee_name || "") + "</td>" +
+          '<td style="text-align:right;">' + (pv.amount || 0) + "</td>" +
+          "<td>" + renderStatusPill(pv.status, pv.approvals_count) + "</td>" +
+          '<td style="text-align:right;white-space:nowrap;">' + btnView + btnEdit + btnPrint + btnCancel + btnShare + "</td>" +
+          "</tr>";
+      });
+      body.innerHTML = html;
+    }, function(err) {
+      console.error("loadAllPvs: ERROR:", err);
+      body.innerHTML = '<tr><td colspan="8" class="muted">Not authorized or error.</td></tr>';
+    });
+  }
+
+  /* ============================================================
+     APPROVALS (Finance Admin)
+     ============================================================ */
+  function loadApprovals() {
+    var pendingBody = document.getElementById("approvalsTableBody");
+    var reviewedBody = document.getElementById("reviewedTableBody");
+    pendingBody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
+    reviewedBody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
+
+    // Load PENDING PVs
+    runServer("listPVsForAdmin", [{ statuses: ["PENDING"] }], function(res) {
+      var list = Array.isArray(res) ? res : (res && res.pvs) ? res.pvs : [];
+      var canAct = res && res.canAct; // Finance Admin can act
+
+      if (!list.length) {
+        pendingBody.innerHTML = '<tr><td colspan="7" class="muted">No PVs pending review.</td></tr>';
+      } else {
+        var html = "";
+        list.forEach(function(pv) {
+          var pvNo = pv.pv_no || "";
+          var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pvNo + '\')">View</button>';
+          var btnReview = canAct ? ' <button class="btn small" onclick="openPvDetail(\'' + pvNo + '\',\'admin\')">Review</button>' : '';
+          var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pvNo + '\')"><i class="fa-solid fa-print"></i></button>';
+          var btnCancel = ' <button class="btn small danger" onclick="cancelPV(\'' + pvNo + '\')" title="Cancel"><i class="fa-solid fa-ban"></i></button>';
+          var btnShare = canShare() ? ' <button class="btn small secondary" onclick="sharePV(\'' + pvNo + '\')"><i class="fa-solid fa-link"></i></button>' : "";
+
+          html += "<tr>" +
+            "<td>" + pvNo + "</td>" +
+            "<td>" + formatDate(pv.date) + "</td>" +
+            "<td>" + (pv.applicant_name || "") + "</td>" +
+            "<td>" + (pv.payee_name || "") + "</td>" +
+            '<td style="text-align:right;">' + (pv.amount || 0) + "</td>" +
+            "<td>" + renderStatusPill(pv.status, pv.approvals_count) + "</td>" +
+            '<td style="text-align:right;white-space:nowrap;">' + btnView + btnReview + btnPrint + btnCancel + btnShare + "</td>" +
+            "</tr>";
+        });
+        pendingBody.innerHTML = html;
+      }
+    }, function() {
+      pendingBody.innerHTML = '<tr><td colspan="7" class="muted">Not authorized.</td></tr>';
+    });
+
+    // Load REVIEWED PVs
+    runServer("listPVsForAdmin", [{ statuses: ["REVIEWED"] }], function(res) {
+      var list = Array.isArray(res) ? res : (res && res.pvs) ? res.pvs : [];
+      var canAct = res && res.canAct;
+
+      if (!list.length) {
+        reviewedBody.innerHTML = '<tr><td colspan="7" class="muted">No reviewed PVs yet.</td></tr>';
+      } else {
+        var html = "";
+        list.forEach(function(pv) {
+          var pvNo = pv.pv_no || "";
+          var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pvNo + '\')">View</button>';
+          var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pvNo + '\')"><i class="fa-solid fa-print"></i></button>';
+          var btnUnreview = canAct ? ' <button class="btn small secondary" onclick="unreviewPV(\'' + pvNo + '\')" title="Move back to Pending"><i class="fa-solid fa-rotate-left"></i></button>' : '';
+          var btnCancel = ' <button class="btn small danger" onclick="cancelPV(\'' + pvNo + '\')" title="Cancel"><i class="fa-solid fa-ban"></i></button>';
+          var btnShare = canShare() ? ' <button class="btn small secondary" onclick="sharePV(\'' + pvNo + '\')"><i class="fa-solid fa-link"></i></button>' : "";
+
+          html += "<tr>" +
+            "<td><i class=\"fa-solid fa-check\" style=\"color:#16a34a;\"></i> " + pvNo + "</td>" +
+            "<td>" + formatDate(pv.date) + "</td>" +
+            "<td>" + (pv.applicant_name || "") + "</td>" +
+            "<td>" + (pv.payee_name || "") + "</td>" +
+            '<td style="text-align:right;">' + (pv.amount || 0) + "</td>" +
+            "<td>" + renderStatusPill(pv.status, pv.approvals_count) + "</td>" +
+            '<td style="text-align:right;white-space:nowrap;">' + btnView + btnPrint + btnUnreview + btnCancel + btnShare + "</td>" +
+            "</tr>";
+        });
+        reviewedBody.innerHTML = html;
+      }
+    });
+  }
+
+  /* ============================================================
+     SIGNATORIES
+     ============================================================ */
+  function loadSignatories() {
+    var pendingBody = document.getElementById("signatoriesTableBody");
+    var approvedBody = document.getElementById("approvedTableBody");
+    pendingBody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
+    approvedBody.innerHTML = '<tr><td colspan="7" class="muted">Loading...</td></tr>';
+
+    // Load REVIEWED and MINISTRY_VERIFIED (pending signatory approval)
+    runServer("listPVsForSignatory", [{ statuses: ["REVIEWED", "MINISTRY_VERIFIED", "PENDING_SIGNATORY"] }], function(res) {
+      var list = Array.isArray(res) ? res : (res && res.pvs) ? res.pvs : [];
+      var canAct = res && res.canAct; // Only signatories can act
+      var isAdmin = LCM.userContext && LCM.userContext.isFinanceAdmin;
+
+      if (!list.length) {
+        pendingBody.innerHTML = '<tr><td colspan="7" class="muted">No PVs awaiting signatory approval.</td></tr>';
+      } else {
+        var html = "";
+        list.forEach(function(pv) {
+          var pvNo = pv.pv_no || "";
+          var approvalsText = pv.approvals_count || "0/2";
+          var approvalDetails = pv.approval_details || "";
+          var alreadyApproved = pv.currentUserApproved;
+          
+          // Show approval details (who approved) with revoke buttons
+          var approvalDisplay = approvalsText;
+          if (approvalDetails) {
+            var roles = approvalDetails.split(", ");
+            var rolesWithRevoke = roles.map(function(r) {
+              var roleName = r.replace(" ✓", "");
+              if (canAct || isAdmin) {
+                return roleName + ' ✓ <button class="btn small danger" style="padding:2px 6px;font-size:10px;" onclick="revokeApproval(\'' + pvNo + '\',\'' + roleName + '\')" title="Revoke">×</button>';
+              }
+              return r;
+            });
+            approvalDisplay += '<br><small>' + rolesWithRevoke.join(", ") + '</small>';
+          }
+          if (alreadyApproved && canAct) {
+            approvalDisplay += '<br><small class="muted">(you approved)</small>';
+          }
+          
+          var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pvNo + '\')">View</button>';
+          var btnApprove = canAct && !alreadyApproved ? ' <button class="btn small" onclick="openPvDetail(\'' + pvNo + '\',\'signatory\')">Approve</button>' : '';
+          var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pvNo + '\')"><i class="fa-solid fa-print"></i></button>';
+          var btnCancel = ' <button class="btn small danger" onclick="cancelPV(\'' + pvNo + '\')" title="Cancel"><i class="fa-solid fa-ban"></i></button>';
+          var btnShare = canShare() ? ' <button class="btn small secondary" onclick="sharePV(\'' + pvNo + '\')"><i class="fa-solid fa-link"></i></button>' : "";
+
+          html += "<tr>" +
+            "<td>" + pvNo + "</td>" +
+            "<td>" + formatDate(pv.date) + "</td>" +
+            "<td>" + (pv.payee_name || "") + "</td>" +
+            '<td style="text-align:right;">' + (pv.amount || 0) + "</td>" +
+            "<td>" + renderStatusPill(pv.status, pv.approvals_count) + "</td>" +
+            '<td style="text-align:center;">' + approvalDisplay + "</td>" +
+            '<td style="text-align:right;white-space:nowrap;">' + btnView + btnApprove + btnPrint + btnCancel + btnShare + "</td>" +
+            "</tr>";
+        });
+        pendingBody.innerHTML = html;
+      }
+    }, function() {
+      pendingBody.innerHTML = '<tr><td colspan="7" class="muted">Not authorized.</td></tr>';
+    });
+
+    // Load APPROVED
+    runServer("listPVsForSignatory", [{ statuses: ["APPROVED"] }], function(res) {
+      var list = Array.isArray(res) ? res : (res && res.pvs) ? res.pvs : [];
+      var isAdmin = LCM.userContext && LCM.userContext.isFinanceAdmin;
+
+      if (!list.length) {
+        approvedBody.innerHTML = '<tr><td colspan="7" class="muted">No fully approved PVs yet.</td></tr>';
+      } else {
+        var html = "";
+        list.forEach(function(pv) {
+          var pvNo = pv.pv_no || "";
+          var approvalsText = pv.approvals_count || "2/2";
+          var approvalDetails = pv.approval_details || "";
+          
+          // Show who approved with revoke buttons (admin only for fully approved)
+          var approvalDisplay = approvalsText;
+          if (approvalDetails) {
+            var roles = approvalDetails.split(", ");
+            var rolesWithRevoke = roles.map(function(r) {
+              var roleName = r.replace(" ✓", "");
+              if (isAdmin) {
+                return roleName + ' ✓ <button class="btn small danger" style="padding:2px 6px;font-size:10px;" onclick="revokeApproval(\'' + pvNo + '\',\'' + roleName + '\')" title="Revoke">×</button>';
+              }
+              return r;
+            });
+            approvalDisplay += '<br><small>' + rolesWithRevoke.join(", ") + '</small>';
+          }
+          
+          var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pvNo + '\')">View</button>';
+          var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pvNo + '\')"><i class="fa-solid fa-print"></i></button>';
+          var btnRevoke = isAdmin ? ' <button class="btn small danger" onclick="revokePV(\'' + pvNo + '\')" title="Revoke"><i class="fa-solid fa-rotate-left"></i></button>' : '';
+          var btnShare = canShare() ? ' <button class="btn small secondary" onclick="sharePV(\'' + pvNo + '\')"><i class="fa-solid fa-link"></i></button>' : "";
+
+          html += "<tr>" +
+            "<td><i class=\"fa-solid fa-check-double\" style=\"color:#16a34a;\"></i> " + pvNo + "</td>" +
+            "<td>" + formatDate(pv.date) + "</td>" +
+            "<td>" + (pv.payee_name || "") + "</td>" +
+            '<td style="text-align:right;">' + (pv.amount || 0) + "</td>" +
+            "<td>" + renderStatusPill(pv.status, pv.approvals_count) + "</td>" +
+            '<td style="text-align:center;">' + approvalDisplay + "</td>" +
+            '<td style="text-align:right;white-space:nowrap;">' + btnView + btnPrint + btnRevoke + btnShare + "</td>" +
+            "</tr>";
+        });
+        approvedBody.innerHTML = html;
+      }
+    });
+  }
+
+  /* ============================================================
+     PV DETAIL MODAL
+     ============================================================ */
+  function openPvDetail(pvNo, mode) {
+    getPVByNo(pvNo, function(pv) {
+      if (!pv) { toastErr("PV not found."); return; }
+
+      var pvNo2 = pv.pv_no || pvNo;
+      document.getElementById("mdTitle").textContent = "PV " + pvNo2 + " – " + (pv.payee_name || "");
+
+      // Build body
+      var html = '<div style="margin-bottom:12px;line-height:1.7;">' +
+        "<div><strong>Date:</strong> " + (pv.date || "") + "</div>" +
+        "<div><strong>Dept:</strong> " + (pv.dept || "") + "</div>" +
+        "<div><strong>Applicant:</strong> " + (pv.applicant_name || "") + "</div>" +
+        "<div><strong>Payee:</strong> " + (pv.payee_name || "") + "</div>" +
+        "<div><strong>Purpose:</strong> " + (pv.purpose || "") + "</div>" +
+        "<div><strong>Payment Method:</strong> " + (pv.payment_method || "") + "</div>" +
+        (pv.payee_bank_name ? "<div><strong>Bank:</strong> " + pv.payee_bank_name + "</div>" : "") +
+        (pv.payee_bank_acct ? "<div><strong>Account:</strong> " + pv.payee_bank_acct + "</div>" : "") +
+        "<div><strong>Status:</strong> " + renderStatusPill(pv.status) + "</div>" +
+        (pv.approvals_count ? "<div><strong>Approvals:</strong> " + pv.approvals_count + "</div>" : "") +
+        "</div>";
+
+      // Line items
+      html += '<h4 style="margin:10px 0 6px;font-size:13px;">Line Items</h4>';
+      var lines = pv.line_items || [];
+      if (!lines.length) {
+        html += '<div class="muted">No line items.</div>';
+      } else {
+        html += '<table><thead><tr><th>Date</th><th>Particulars</th><th style="text-align:right;">Amount</th></tr></thead><tbody>';
+        var lineTotal = 0;
+        lines.forEach(function(li) {
+          var amt = parseFloat(li.amount) || 0;
+          lineTotal += amt;
+          html += "<tr><td>" + (li.date || "") + "</td><td>" + (li.description || "") + '</td><td style="text-align:right;">' + amt.toFixed(2) + "</td></tr>";
+        });
+        html += '<tr class="table-footer-row"><td colspan="2">Total:</td><td>RM ' + lineTotal.toFixed(2) + '</td></tr></tbody></table>';
+      }
+
+      // Attachments
+      html += '<h4 style="margin:12px 0 6px;font-size:13px;">Attachments</h4>';
+      var atts = pv.attachments || [];
+      if (!atts.length) {
+        html += '<div class="muted">No attachments.</div>';
+      } else {
+        html += '<ul class="attachment-list">';
+        atts.forEach(function(a, idx) {
+          var url = (a && a.url) ? a.url : a;
+          html += '<li><a href="' + url + '" target="_blank">Attachment ' + (idx + 1) + '</a></li>';
+        });
+        html += "</ul>";
+      }
+
+      document.getElementById("mdBody").innerHTML = html;
+
+      // Build footer
+      var footer = document.getElementById("mdFooter");
+      footer.innerHTML = "";
+
+      // Print button (if approved)
+      if (String(pv.status || "").toUpperCase() === "APPROVED") {
+        var btnPrint = document.createElement("button");
+        btnPrint.className = "btn secondary small";
+        btnPrint.innerHTML = '<i class="fa-solid fa-print"></i> Print';
+        btnPrint.onclick = function() { printSignedPV(pvNo2); };
+        footer.appendChild(btnPrint);
+      }
+
+      // Share button
+      if (canShare()) {
+        var btnShare = document.createElement("button");
+        btnShare.className = "btn secondary small";
+        btnShare.innerHTML = '<i class="fa-solid fa-link"></i> Share';
+        btnShare.onclick = function() { sharePV(pvNo2); };
+        footer.appendChild(btnShare);
+      }
+
+      // Admin mode
+      if (mode === "admin") {
+        // Add bank account selection
+        var bankSelectDiv = document.createElement("div");
+        bankSelectDiv.style.cssText = "margin-bottom:10px;padding:10px;background:#f7f7f7;border-radius:8px;";
+        bankSelectDiv.innerHTML = '<label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Set Payee Bank Account:</label>' +
+          '<select id="payeeBankSelect" style="width:100%;padding:6px;border-radius:6px;border:1px solid #ddd;">' +
+          '<option value="">(Keep current)</option>' +
+          '<option value="MAIN_MBB">Main - Maybank</option>' +
+          '<option value="BMC_MBB">BMC - Maybank</option>' +
+          '<option value="LCM_PBB">LCM - Public Bank</option>' +
+          '<option value="LSC_RHB">LSC - RHB</option>' +
+          '<option value="FELCMS_RHB">FELCMS - RHB</option>' +
+          '</select>';
+        footer.appendChild(bankSelectDiv);
+
+        var comment = document.createElement("textarea");
+        comment.id = "adminReviewComment";
+        comment.placeholder = "Internal remarks (optional)";
+        comment.style.cssText = "width:100%;min-height:50px;font-size:12px;margin-right:auto;border-radius:8px;border:1px solid #ddd;padding:8px;";
+        footer.appendChild(comment);
+
+        var btnReject = document.createElement("button");
+        btnReject.className = "btn danger small";
+        btnReject.textContent = "Reject";
+        btnReject.onclick = function() {
+          var c = document.getElementById("adminReviewComment").value;
+          runServer("adminRejectPV", [pvNo2, c, "INTERNAL"], function(res) {
+            if (res && res.ok) {
+              toastOk("PV rejected.");
+              closeModal("pvDetailModal");
+              loadApprovals();
+              loadAllPvs();
+              loadMyClaims();
+            } else {
+              toastErr((res && res.error) || "Reject failed.");
+            }
+          });
+        };
+        footer.appendChild(btnReject);
+
+        var btnSend = document.createElement("button");
+        btnSend.className = "btn small";
+        btnSend.textContent = "Send to Signatories";
+        btnSend.onclick = function() {
+          var c = document.getElementById("adminReviewComment").value;
+          var bank = document.getElementById("payeeBankSelect").value;
+          runServer("adminSendToSignatories", [pvNo2, c, "INTERNAL", bank], function(res) {
+            if (res && res.ok) {
+              toastOk("PV marked REVIEWED.");
+              closeModal("pvDetailModal");
+              loadApprovals();
+              loadSignatories();
+              loadAllPvs();
+              loadMyClaims();
+            } else {
+              toastErr((res && res.error) || "Failed.");
+            }
+          });
+        };
+        footer.appendChild(btnSend);
+      }
+
+      // Signatory mode
+      if (mode === "signatory") {
+        var commentS = document.createElement("textarea");
+        commentS.id = "signatoryComment";
+        commentS.placeholder = "Remarks (optional)";
+        commentS.style.cssText = "width:100%;min-height:50px;font-size:12px;margin-right:auto;border-radius:8px;border:1px solid #ddd;padding:8px;";
+        footer.appendChild(commentS);
+
+        var btnRejectS = document.createElement("button");
+        btnRejectS.className = "btn danger small";
+        btnRejectS.textContent = "Reject";
+        btnRejectS.onclick = function() {
+          var c = document.getElementById("signatoryComment").value;
+          runServer("signatoryActOnPV", [pvNo2, "REJECTED", c, "INTERNAL"], function(res) {
+            if (res && res.ok) { toastOk("PV rejected."); }
+            else { toastErr((res && res.error) || "Failed."); }
+            closeModal("pvDetailModal");
+            loadSignatories();
+            loadAllPvs();
+            loadMyClaims();
+          });
+        };
+        footer.appendChild(btnRejectS);
+
+        var btnApprove = document.createElement("button");
+        btnApprove.className = "btn small";
+        btnApprove.textContent = "Approve";
+        btnApprove.onclick = function() {
+          var c = document.getElementById("signatoryComment").value;
+          runServer("signatoryActOnPV", [pvNo2, "APPROVED", c, "INTERNAL"], function(res) {
+            if (res && res.ok) {
+              var msg = "Approval recorded.";
+              if (res.approvals_count) msg += " (" + res.approvals_count + ")";
+              if (res.final) msg = "PV fully approved! Signed PDF ready.";
+              toastOk(msg);
+            } else {
+              toastErr((res && res.error) || "Failed.");
+            }
+            closeModal("pvDetailModal");
+            loadSignatories();
+            loadAllPvs();
+            loadMyClaims();
+          });
+        };
+        footer.appendChild(btnApprove);
+      }
+
+      // Close button
+      var btnClose = document.createElement("button");
+      btnClose.className = "btn secondary small";
+      btnClose.textContent = "Close";
+      btnClose.onclick = function() { closeModal("pvDetailModal"); };
+      footer.appendChild(btnClose);
+
+      openModal("pvDetailModal");
+    });
+  }
+
+  /* ============================================================
+     PRINT SIGNED PDF
+     ============================================================ */
+  function printSignedPV(pvNo) {
+    if (!pvNo) { toastWarn("Missing PV number."); return; }
+    toast("warn", "Preparing", "Generating signed PDF...");
+
+    getPVByNo(pvNo, function(pv) {
+      var url = pv && pv.signed_pdf_url ? pv.signed_pdf_url : "";
+      if (url) {
+        window.open(url, "_blank");
+        toastOk("Opening signed PV...");
+        return;
+      }
+
+      runServer("generateSignedPV", [pvNo], function(res) {
+        if (res && res.ok && res.signed_pdf_url) {
+          window.open(res.signed_pdf_url, "_blank");
+          toastOk("Opening signed PV...");
+          loadMyClaims();
+        } else {
+          toastErr((res && res.error) || "Signed PDF not available.");
+        }
+      });
+    });
+  }
+
+  /* ============================================================
+     PV PREVIEW MODAL - Shows exact PV format with signature progress
+     ============================================================ */
+  var currentPreviewPvNo = "";
+
+  function openPvPreview(pvNo) {
+    if (!pvNo) return;
+    currentPreviewPvNo = pvNo;
+    
+    document.getElementById("pvPreviewModal").classList.add("open");
+    document.getElementById("pvPreviewStatus").textContent = "Loading...";
+    document.getElementById("pvPreviewStatus").className = "pv-preview-status";
+    document.getElementById("pvPreviewContent").innerHTML = '<div style="text-align:center;padding:40px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading PV...</div>';
+    
+    runServer("getPVForPreview", [pvNo], function(res) {
+      if (!res || !res.ok) {
+        document.getElementById("pvPreviewContent").innerHTML = '<div style="color:red;padding:20px;">Error loading PV: ' + ((res && res.error) || "Unknown error") + '</div>';
+        return;
+      }
+      
+      renderPvPreview(res.pv, res.signatures);
+    });
+  }
+
+  function closePvPreview() {
+    document.getElementById("pvPreviewModal").classList.remove("open");
+    currentPreviewPvNo = "";
+  }
+
+  function printCurrentPV() {
+    if (currentPreviewPvNo) {
+      printSignedPV(currentPreviewPvNo);
+    }
+  }
+
+  function renderPvPreview(pv, signatures) {
+    var statusInfo = getStatusDisplayInfo(pv.status, pv.approvals_count);
+    var statusEl = document.getElementById("pvPreviewStatus");
+    statusEl.textContent = statusInfo.label;
+    statusEl.className = "pv-preview-status " + statusInfo.cssClass;
+    
+    // Build line items
+    var lineItems = pv.line_items || [];
+    var total = 0;
+    var linesHtml = "";
+    lineItems.forEach(function(li, idx) {
+      var amt = parseFloat(li.amount) || 0;
+      total += amt;
+      linesHtml += '<tr>' +
+        '<td style="padding:5px 10px;font-size:11px;text-align:center;border-bottom:1px solid #ddd;">' + (idx + 1) + '</td>' +
+        '<td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #ddd;">' + (li.description || '') + '</td>' +
+        '<td style="padding:5px 10px;font-size:11px;text-align:right;border-bottom:1px solid #ddd;">' + amt.toFixed(2) + '</td>' +
+        '</tr>';
+    });
+
+    // Payment method info
+    var paymentMethod = pv.payment_method || "Bank transfer";
+    var paymentDetailsHtml = '<tr><th style="border:1px solid #000;padding:6px;font-size:10px;background:#f5f5f5;">Date</th>';
+    var paymentValuesHtml = '<tr><td style="border:1px solid #000;padding:6px;font-size:10px;">' + formatDate(pv.date) + '</td>';
+    
+    if (paymentMethod === "Cheque" && pv.cheque_no) {
+      paymentDetailsHtml += '<th style="border:1px solid #000;padding:6px;font-size:10px;background:#f5f5f5;">Cheque No.</th>';
+      paymentValuesHtml += '<td style="border:1px solid #000;padding:6px;font-size:10px;">' + pv.cheque_no + '</td>';
+    } else if (paymentMethod === "JomPAY") {
+      paymentDetailsHtml += '<th style="border:1px solid #000;padding:6px;font-size:10px;background:#f5f5f5;">JomPAY</th>';
+      paymentValuesHtml += '<td style="border:1px solid #000;padding:6px;font-size:10px;">Biller: ' + (pv.biller_code || '-') + '<br>Ref: ' + (pv.ref_no || '-') + '</td>';
+    } else if (paymentMethod === "Bank transfer" && pv.payee_bank_name) {
+      paymentDetailsHtml += '<th style="border:1px solid #000;padding:6px;font-size:10px;background:#f5f5f5;">Bank</th>';
+      paymentValuesHtml += '<td style="border:1px solid #000;padding:6px;font-size:10px;">' + pv.payee_bank_name + '<br>' + (pv.payee_bank_acct || '') + '</td>';
+    }
+    
+    paymentDetailsHtml += '<th style="border:1px solid #000;padding:6px;font-size:10px;background:#f5f5f5;text-align:right;">Amount (RM)</th></tr>';
+    paymentValuesHtml += '<td style="border:1px solid #000;padding:6px;font-size:10px;text-align:right;">' + total.toFixed(2) + '</td></tr>';
+
+    // Set bank payout
+    var setBankHtml = "";
+    if (pv.payer_bank_name) {
+      setBankHtml = '<span style="font-size:11px;font-weight:bold;background:#fffde7;padding:4px 8px;border:1px solid #fdd835;">' + pv.payer_bank_name + '</span>';
+    }
+
+    // Ministry Head verification section
+    var ministryHeadHtml = "";
+    var ministryVerified = (pv.ministry_verified === "YES" || pv.head_verified === "YES");
+    var deptHeadName = pv.dept_head_name || pv.ministry_head_name || "";
+    var deptName = pv.dept || "";
+    
+    ministryHeadHtml = '<div style="margin-top:20px;padding:15px;border:1px solid #ddd;border-radius:8px;">' +
+      '<div style="font-weight:bold;font-size:11px;margin-bottom:10px;border-bottom:1px solid #ccc;padding-bottom:5px;">VERIFIED BY (Ministry Head):</div>' +
+      '<div style="display:flex;gap:40px;">' +
+      '<div style="text-align:center;width:180px;">' +
+      '<div style="height:50px;display:flex;align-items:flex-end;justify-content:center;">';
+    
+    if (ministryVerified && signatures && signatures.DEPT_HEAD && signatures.DEPT_HEAD.file_url) {
+      ministryHeadHtml += '<img src="' + signatures.DEPT_HEAD.file_url + '" style="max-height:45px;max-width:150px;">';
+    } else if (ministryVerified) {
+      ministryHeadHtml += '<span style="color:#16a34a;font-size:20px;"><i class="fa-solid fa-check-circle"></i></span>';
+    } else {
+      ministryHeadHtml += '<span style="color:#ccc;font-size:11px;">Pending</span>';
+    }
+    
+    ministryHeadHtml += '</div>' +
+      '<div style="border-top:1px solid #000;margin-top:5px;padding-top:5px;">' +
+      '<div style="font-size:10px;">' + (deptHeadName || 'Ministry Head') + '</div>' +
+      '<div style="font-size:9px;color:#666;">(' + deptName + ')</div>' +
+      '</div></div></div></div>';
+
+    // Signatories section
+    var approvals = pv.approvals || [];
+    var signatoryRoles = ["BISHOP", "TREASURER", "SECRETARY"];
+    var approvedRoles = {};
+    approvals.forEach(function(a) {
+      if (a.decision === "APPROVED") approvedRoles[a.role] = true;
+    });
+    
+    var signatoriesHtml = '<div style="margin-top:20px;padding:15px;border:1px solid #ddd;border-radius:8px;">' +
+      '<div style="font-weight:bold;font-size:11px;margin-bottom:10px;border-bottom:1px solid #ccc;padding-bottom:5px;">APPROVED BY (Signatories - 2 required):</div>' +
+      '<div style="display:flex;justify-content:center;gap:40px;">';
+    
+    signatoryRoles.forEach(function(role) {
+      var isApproved = approvedRoles[role];
+      var sig = (signatures && signatures[role]) || {};
+      
+      signatoriesHtml += '<div style="text-align:center;width:150px;">' +
+        '<div style="height:50px;display:flex;align-items:flex-end;justify-content:center;">';
+      
+      if (isApproved && sig.file_url) {
+        signatoriesHtml += '<img src="' + sig.file_url + '" style="max-height:45px;max-width:120px;">';
+      } else if (isApproved) {
+        signatoriesHtml += '<span style="color:#16a34a;font-size:20px;"><i class="fa-solid fa-check-circle"></i></span>';
+      } else {
+        signatoriesHtml += '<span style="color:#ccc;font-size:10px;">Pending</span>';
+      }
+      
+      signatoriesHtml += '</div>' +
+        '<div style="border-top:1px solid ' + (isApproved ? '#000' : '#ccc') + ';margin-top:5px;padding-top:5px;">' +
+        '<div style="font-size:10px;' + (isApproved ? 'font-weight:bold;' : 'color:#999;') + '">' + (sig.name || role) + '</div>' +
+        '<div style="font-size:9px;color:#666;">' + role + '</div>' +
+        '</div></div>';
+    });
+    
+    signatoriesHtml += '</div></div>';
+
+    // Build full preview HTML
+    var html = '<div style="font-family:Arial,sans-serif;font-size:12px;line-height:1.4;">' +
+      // Header
+      '<div style="display:flex;gap:15px;margin-bottom:15px;">' +
+      '<img src="https://www.lutheran.org.my/wp-content/uploads/2018/09/LCM-Logo-120px.png" style="width:60px;height:60px;" onerror="this.style.display=\'none\'">' +
+      '<div>' +
+      '<div style="font-size:14px;font-weight:bold;">LUTHERAN CHURCH IN MALAYSIA <span style="font-size:9px;font-weight:normal;color:#666;">(ROS: PPM-001-10-09031964)</span></div>' +
+      '<div style="font-size:10px;">Luther Centre, No. 6, Jalan Utara, 46200 Petaling Jaya, Selangor, Malaysia</div>' +
+      '<div style="font-size:10px;">Tel: 03-7956 5992 | Fax: 03-7957 6953 | Email: hq@lcm.org.my</div>' +
+      '</div></div>' +
+      
+      // Title row with Set Bank
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin:15px 0;">' +
+      '<span style="font-size:16px;font-weight:bold;text-decoration:underline;">PAYMENT VOUCHER</span>' +
+      setBankHtml +
+      '</div>' +
+      
+      // Pay To row
+      '<table style="width:100%;margin-bottom:10px;"><tr>' +
+      '<td style="width:70%;">' +
+      '<div><strong>PAY TO:</strong> <span style="font-weight:bold;text-transform:uppercase;">' + (pv.payee_name || '') + '</span></div>' +
+      '<div style="margin-top:5px;"><strong>MINISTRY / DPT:</strong> ' + (pv.dept || '') + '</div>' +
+      '</td>' +
+      '<td style="text-align:right;font-size:11px;">' +
+      'Voucher No: <strong>' + (pv.pv_no || '') + '</strong><br>' +
+      'Date: ' + formatDate(pv.date) +
+      '</td></tr></table>' +
+      
+      // Payment details table
+      '<table style="border-collapse:collapse;margin:15px 0;width:80%;">' +
+      paymentDetailsHtml + paymentValuesHtml +
+      '</table>' +
+      
+      // Line items
+      '<div style="margin-top:15px;">' +
+      '<div style="font-size:11px;font-style:italic;margin-bottom:5px;">Payment for</div>' +
+      '<table style="width:100%;border-collapse:collapse;">' +
+      '<tr style="background:#f5f5f5;"><th style="padding:6px;font-size:10px;border:1px solid #ddd;width:40px;">No</th>' +
+      '<th style="padding:6px;font-size:10px;border:1px solid #ddd;text-align:left;">Description</th>' +
+      '<th style="padding:6px;font-size:10px;border:1px solid #ddd;text-align:right;width:100px;">Amount</th></tr>' +
+      linesHtml +
+      '</table></div>' +
+      
+      // Total
+      '<div style="text-align:right;margin-top:10px;font-weight:bold;">Total: RM ' + total.toFixed(2) + '</div>' +
+      
+      // Ministry Head verification
+      ministryHeadHtml +
+      
+      // Signatories
+      signatoriesHtml +
+      
+      '</div>';
+    
+    document.getElementById("pvPreviewContent").innerHTML = html;
+  }
+
+  /* ============================================================
+     CANCEL / REVOKE PV
+     ============================================================ */
+  function cancelPV(pvNo) {
+    if (!pvNo) return;
+    var reason = prompt("Enter reason for cancellation:");
+    if (reason === null) return; // User clicked Cancel
+    
+    toast("warn", "Cancelling", "Please wait...");
+    runServer("cancelPV", [pvNo, reason], function(res) {
+      if (res && res.ok) {
+        toastOk("PV cancelled.");
+        refreshCurrentView();
+      } else {
+        toastErr((res && res.error) || "Failed to cancel PV.");
+      }
+    });
+  }
+
+  function revokePV(pvNo) {
+    if (!pvNo) return;
+    if (!confirm("This PV is already APPROVED. Are you sure you want to revoke it?\n\nThis will reset its status and require re-approval.")) {
+      return;
+    }
+    
+    var reason = prompt("Enter reason for revoking:");
+    if (reason === null) return;
+    
+    toast("warn", "Revoking", "Please wait...");
+    runServer("revokePV", [pvNo, reason], function(res) {
+      if (res && res.ok) {
+        toastOk("PV revoked. Status reset to Pending.");
+        refreshCurrentView();
+      } else {
+        toastErr((res && res.error) || "Failed to revoke PV.");
+      }
+    });
+  }
+
+  function refreshCurrentView() {
+    var view = LCM.currentView;
+    if (view === "allpvs") loadAllPvs();
+    else if (view === "approvals") loadApprovals();
+    else if (view === "signatories") loadSignatories();
+    else if (view === "depthead") loadDeptHeadPVs();
+    else if (view === "claims") loadMyClaims();
+  }
+
+  /* ============================================================
+     SHARE PV LINK
+     ============================================================ */
+  function sharePV(pvNo) {
+    if (!pvNo) return;
+    if (!canShare()) {
+      toastWarn("Share links for Admin/Signatories only.");
+      return;
+    }
+
+    toast("warn", "Creating", "Generating share link...");
+    runServer("createShareLink", [pvNo], function(res) {
+      if (res && res.ok && res.url) {
+        copyToClipboard(res.url);
+        toast("ok", "Share Link Ready", "Copied to clipboard.", [
+          { label: "Open", onClick: function() { window.open(res.url, "_blank"); } },
+          { label: "Copy", onClick: function() { copyToClipboard(res.url); toastOk("Copied."); } }
+        ]);
+      } else {
+        toastErr((res && res.error) || "Failed to create link.");
+      }
+    });
+  }
+
+  /* ============================================================
+     EDIT PV - Load PV data into form for editing
+     ============================================================ */
+  function editPV(pvNo) {
+    if (!pvNo) return;
+    toast("warn", "Loading", "Fetching PV data...");
+    
+    getPVByNo(pvNo, function(pv) {
+      if (!pv) {
+        toastErr("PV not found.");
+        return;
+      }
+
+      // Switch to PV form
+      setView("pv");
+
+      // Populate form fields
+      document.getElementById("pvNumberPreview").textContent = pv.pv_no + " (editing)";
+      document.getElementById("pvDate").value = pv.date ? pv.date.substring(0, 10) : "";
+      document.getElementById("applicantName").value = pv.applicant_name || "";
+      document.getElementById("deptSelect").value = pv.dept || "";
+      document.getElementById("projectSelect").value = pv.project || "";
+      document.getElementById("payeeSelect").value = pv.payee_name || "";
+      document.getElementById("purpose").value = pv.purpose || "";
+      document.getElementById("paymentMethod").value = pv.payment_method || "Bank transfer";
+      updatePaymentMethodUI();
+      document.getElementById("bankSelect").value = pv.payee_bank_name || "";
+      document.getElementById("payeeBankAcct").value = pv.payee_bank_acct || "";
+      
+      if (document.getElementById("billerCode")) document.getElementById("billerCode").value = pv.biller_code || "";
+      if (document.getElementById("refNo")) document.getElementById("refNo").value = pv.ref_no || "";
+      if (document.getElementById("chequeNo")) document.getElementById("chequeNo").value = pv.cheque_no || "";
+
+      // Populate line items
+      LCM.lineCounter = 0;
+      document.getElementById("pvLinesBody").innerHTML = "";
+      var lines = pv.line_items || [];
+      if (!lines.length) {
+        addLineRow();
+      } else {
+        lines.forEach(function(li) {
+          addLineRow();
+          var tr = document.querySelector("#pvLinesBody tr:last-child");
+          if (tr.querySelector(".line-date")) tr.querySelector(".line-date").value = li.date || "";
+          if (tr.querySelector(".line-desc")) tr.querySelector(".line-desc").value = li.description || "";
+          if (tr.querySelector(".line-amt")) tr.querySelector(".line-amt").value = li.amount || 0;
+        });
+        recalcTotal();
+      }
+
+      // Populate attachments
+      LCM.attachments = pv.attachments || [];
+      renderAttachments();
+
+      // Store editing PV number for update
+      LCM.editingPvNo = pvNo;
+
+      toastOk("PV loaded for editing. Make changes and submit.");
+    });
+  }
+
+  /* ============================================================
+     DELETE PV
+     ============================================================ */
+  function deletePV(pvNo) {
+    if (!pvNo) return;
+    if (!confirm("Are you sure you want to delete " + pvNo + "? This cannot be undone.")) return;
+
+    toast("warn", "Deleting", "Please wait...");
+    runServer("deletePV", pvNo, function(res) {
+      if (res && res.ok) {
+        toastOk("PV deleted.");
+        loadMyClaims();
+        loadAllPvs();
+        loadApprovals();
+      } else {
+        toastErr((res && res.error) || "Delete failed.");
+      }
+    });
+  }
+
+  /* ============================================================
+     UNREVIEW PV - Move back from REVIEWED to PENDING
+     ============================================================ */
+  function unreviewPV(pvNo) {
+    if (!pvNo) return;
+    if (!confirm("Move " + pvNo + " back to Pending Review?")) return;
+
+    toast("warn", "Updating", "Please wait...");
+    runServer("unreviewPV", pvNo, function(res) {
+      if (res && res.ok) {
+        toastOk("PV moved back to Pending.");
+        loadApprovals();
+        loadAllPvs();
+      } else {
+        toastErr((res && res.error) || "Failed to unreview.");
+      }
+    });
+  }
+
+  /* ============================================================
+     RECURRING
+     ============================================================ */
+  function saveRecurringExpense() {
+    var payload = {
+      name: document.getElementById("recName").value,
+      payee_name: document.getElementById("recPayee").value,
+      dept: document.getElementById("recDept").value,
+      project: document.getElementById("recProject").value,
+      amount: parseFloat(document.getElementById("recAmount").value) || 0,
+      frequency: document.getElementById("recFrequency").value,
+      next_date: document.getElementById("recNextDate").value,
+      notes: document.getElementById("recNotes").value
+    };
+
+    if (!payload.name) { toastWarn("Enter expense name."); return; }
+    if (!payload.payee_name) { toastWarn("Enter payee."); return; }
+
+    toast("warn", "Saving", "Please wait...");
+    runServer("saveRecurringExpense", payload, function(res) {
+      if (res && res.ok) {
+        toastOk("Recurring expense saved.");
+        document.getElementById("recName").value = "";
+        document.getElementById("recPayee").value = "";
+        document.getElementById("recProject").value = "";
+        document.getElementById("recAmount").value = "";
+        document.getElementById("recNotes").value = "";
+        loadRecurring();
+      } else {
+        toastErr((res && res.error) || "Save failed.");
+      }
+    });
+  }
+
+  function loadRecurring() {
+    var body = document.getElementById("recurringTableBody");
+    body.innerHTML = '<tr><td colspan="6" class="muted">Loading...</td></tr>';
+
+    runServer("listRecurringExpenses", undefined, function(list) {
+      LCM.recurring = list || [];
+      if (!LCM.recurring.length) {
+        body.innerHTML = '<tr><td colspan="6" class="muted">No recurring expenses.</td></tr>';
+        return;
+      }
+
+      var html = "";
+      LCM.recurring.forEach(function(r) {
+        html += "<tr>" +
+          "<td>" + (r.name || "") + "</td>" +
+          "<td>" + (r.payee_name || "") + "</td>" +
+          '<td style="text-align:right;">' + (r.amount || 0) + "</td>" +
+          "<td>" + (r.frequency || "") + "</td>" +
+          "<td>" + (r.next_date || "") + "</td>" +
+          '<td style="text-align:right;">' +
+            '<button class="btn small" onclick="generatePvFromRecurring(\'' + r.id + '\')">Generate PV</button> ' +
+            '<button class="btn small danger" onclick="deleteRecurring(\'' + r.id + '\')"><i class="fa-solid fa-trash"></i></button>' +
+          "</td></tr>";
+      });
+      body.innerHTML = html;
+    }, function() {
+      body.innerHTML = '<tr><td colspan="6" class="muted">Failed to load.</td></tr>';
+    });
+  }
+
+  function generatePvFromRecurring(id) {
+    toast("warn", "Generating", "Creating PV...");
+    runServer("generatePVFromRecurring", id, function(res) {
+      if (res && res.ok && res.pv_no) {
+        toastOk("PV generated: " + res.pv_no);
+        loadRecurring();
+        loadMyClaims();
+      } else {
+        toastErr((res && res.error) || "Failed.");
+      }
+    });
+  }
+
+  function deleteRecurring(id) {
+    if (!confirm("Delete this recurring expense?")) return;
+    runServer("deleteRecurringExpense", id, function(res) {
+      if (res && res.ok) { toastOk("Deleted."); loadRecurring(); }
+      else { toastErr("Delete failed."); }
+    });
+  }
+
+  /* ============================================================
+     FAVOURITES
+     ============================================================ */
+  function saveFavouriteTemplate() {
+    var data = buildPvPayload();
+    var name = String(data.purpose || "").trim() || ("Favourite " + new Date().toISOString().slice(0, 10));
+
+    toast("warn", "Saving", "Please wait...");
+    runServer("saveFavouriteTemplate", { name: name, payload: data }, function(res) {
+      if (res && res.ok) {
+        toastOk("Favourite saved.");
+        loadFavourites();
+        setView("favourites");
+      } else {
+        toastErr((res && res.error) || "Save failed.");
+      }
+    });
+  }
+
+  function loadFavourites() {
+    var body = document.getElementById("favouritesTableBody");
+    body.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+
+    runServer("listFavourites", undefined, function(list) {
+      LCM.favourites = list || [];
+      if (!LCM.favourites.length) {
+        body.innerHTML = '<tr><td colspan="5" class="muted">No favourites.</td></tr>';
+        return;
+      }
+
+      var html = "";
+      LCM.favourites.forEach(function(f) {
+        html += "<tr>" +
+          "<td>" + (f.name || "") + "</td>" +
+          "<td>" + (f.payee || "") + "</td>" +
+          "<td>" + (f.dept || "") + "</td>" +
+          '<td style="text-align:right;">' + (f.amount || 0) + "</td>" +
+          '<td style="text-align:right;">' +
+            '<button class="btn small" onclick="useFavourite(\'' + f.id + '\')">Use</button> ' +
+            '<button class="btn small danger" onclick="deleteFavourite(\'' + f.id + '\')"><i class="fa-solid fa-trash"></i></button>' +
+          "</td></tr>";
+      });
+      body.innerHTML = html;
+    }, function() {
+      body.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
+    });
+  }
+
+  function useFavourite(id) {
+    runServer("getFavouriteById", id, function(res) {
+      if (!res || !res.ok || !res.favourite) {
+        toastErr("Favourite not found.");
+        return;
+      }
+      applyFavouritePayload(res.favourite.payload);
+      setView("pv");
+      toastOk("Favourite loaded.");
+    });
+  }
+
+  function applyFavouritePayload(p) {
+    p = p || {};
+    document.getElementById("pvDate").value = p.pvDate || new Date().toISOString().slice(0, 10);
+    document.getElementById("applicantName").value = p.applicant_name || "";
+    document.getElementById("deptSelect").value = p.dept || "";
+    document.getElementById("projectSelect").value = p.project || "";
+    document.getElementById("payeeSelect").value = p.payee_name || "";
+    document.getElementById("purpose").value = p.purpose || "";
+    document.getElementById("paymentMethod").value = p.payment_method || "Bank transfer";
+    updatePaymentMethodUI();
+    document.getElementById("bankSelect").value = p.payee_bank_name || "";
+    document.getElementById("payeeBankAcct").value = p.payee_bank_acct || "";
+    document.getElementById("chequeNo").value = p.cheque_no || "";
+
+    // Reset and populate lines
+    LCM.lineCounter = 0;
+    document.getElementById("pvLinesBody").innerHTML = "";
+    var lines = Array.isArray(p.line_items) ? p.line_items : [];
+    if (!lines.length) {
+      addLineRow();
+    } else {
+      lines.forEach(function(li) {
+        addLineRow();
+        var tr = document.querySelector("#pvLinesBody tr:last-child");
+        if (tr.querySelector(".line-date")) tr.querySelector(".line-date").value = li.date || "";
+        if (tr.querySelector(".line-desc")) tr.querySelector(".line-desc").value = li.description || "";
+        if (tr.querySelector(".line-amt")) tr.querySelector(".line-amt").value = li.amount || 0;
+      });
+      recalcTotal();
+    }
+
+    LCM.attachments = Array.isArray(p.attachments) ? p.attachments.slice() : [];
+    renderAttachments();
+  }
+
+  function deleteFavourite(id) {
+    if (!confirm("Delete this favourite?")) return;
+    runServer("deleteFavourite", id, function(res) {
+      if (res && res.ok) { toastOk("Deleted."); loadFavourites(); }
+      else { toastErr("Delete failed."); }
+    });
+  }
+
+  /* ============================================================
+     SETTINGS: TEST ROLE & SIGNATURES
+     ============================================================ */
+  function applyTestRole() {
+    var v = document.getElementById("testRoleSelect").value || "";
+    document.getElementById("testRoleLabel").textContent = v || "Off";
+
+    runServer("setTestRole", v, function(res) {
+      toastOk("Test role: " + (v || "Off"));
+      initUserContext();
+    });
+  }
+
+  function runDebugContext() {
+    var output = document.getElementById("debugOutput");
+    output.textContent = "Running...";
+    
+    runServer("debugWebAppContext", undefined, function(res) {
+      output.textContent = JSON.stringify(res, null, 2);
+      console.log("Debug result:", res);
+    }, function(err) {
+      output.textContent = "ERROR: " + (err.message || err);
+    });
+  }
+
+  function cleanupInvalidPVs() {
+    if (!confirm("This will delete all PVs with invalid status (not PENDING/REVIEWED/APPROVED/REJECTED). Continue?")) return;
+    
+    var output = document.getElementById("debugOutput");
+    output.textContent = "Cleaning up...";
+    
+    runServer("cleanupInvalidPVs", undefined, function(res) {
+      if (res && res.ok) {
+        output.textContent = "Deleted " + res.deleted + " invalid PVs.\n" + JSON.stringify(res.details, null, 2);
+        toastOk("Cleaned up " + res.deleted + " invalid PVs.");
+        loadAllPvs();
+        loadMyClaims();
+      } else {
+        output.textContent = "ERROR: " + ((res && res.error) || "Unknown error");
+        toastErr((res && res.error) || "Cleanup failed.");
+      }
+    }, function(err) {
+      output.textContent = "ERROR: " + (err.message || err);
+    });
+  }
+
+  /* ============================================================
+     SEARCH FILTER FUNCTIONS
+     ============================================================ */
+  function filterTableRows(tableBodyId, searchInputId) {
+    var input = document.getElementById(searchInputId);
+    var filter = (input.value || "").toLowerCase();
+    var tbody = document.getElementById(tableBodyId);
+    var rows = tbody.getElementsByTagName("tr");
+    
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var text = row.textContent || row.innerText;
+      if (text.toLowerCase().indexOf(filter) > -1) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    }
+  }
+  
+  function filterMyClaimsTable() { filterTableRows("myClaimsBody", "myClaimsSearch"); }
+  function filterAllPvsTable() { filterTableRows("allPvsBody", "allPvsSearch"); }
+  function filterApprovalsTable() { 
+    filterTableRows("approvalsTableBody", "approvalsSearch"); 
+    filterTableRows("reviewedTableBody", "approvalsSearch"); 
+  }
+  function filterSignatoriesTable() { 
+    filterTableRows("signatoriesTableBody", "signatoriesSearch"); 
+    filterTableRows("approvedTableBody", "signatoriesSearch"); 
+  }
+
+  /* ============================================================
+     REVOKE SIGNATORY APPROVAL
+     ============================================================ */
+  function revokeApproval(pvNo, role) {
+    if (!confirm("Revoke " + role + "'s approval on " + pvNo + "?")) return;
+    
+    toast("warn", "Revoking", "Please wait...");
+    runServer("revokeSignatoryApproval", [pvNo, role], function(res) {
+      if (res && res.ok) {
+        toastOk("Approval revoked. Status: " + res.status);
+        loadSignatories();
+        loadAllPvs();
+      } else {
+        toastErr((res && res.error) || "Revoke failed.");
+      }
+    });
+  }
+
+  /* ============================================================
+     TRACK PV STATUS
+     ============================================================ */
+  function trackPVStatus() {
+    var input = document.getElementById("trackingInput").value.trim();
+    if (!input) {
+      toastWarn("Please enter a PV number or tracking code.");
+      return;
+    }
+
+    toast("warn", "Searching", "Looking up status...");
+    runServer("trackPVStatus", input, function(res) {
+      var resultDiv = document.getElementById("trackingResult");
+      var infoDiv = document.getElementById("trackingPvInfo");
+      var timelineDiv = document.getElementById("trackingTimeline");
+
+      if (!res || !res.ok) {
+        resultDiv.style.display = "none";
+        toastErr((res && res.error) || "PV not found.");
+        return;
+      }
+
+      resultDiv.style.display = "block";
+      
+      // Show PV info
+      var pv = res.pv;
+      infoDiv.innerHTML = 
+        '<div class="grid-2">' +
+        '<div><strong>PV No:</strong> ' + pv.pv_no + '</div>' +
+        '<div><strong>Date:</strong> ' + pv.date + '</div>' +
+        '<div><strong>Applicant:</strong> ' + pv.applicant_name + '</div>' +
+        '<div><strong>Department:</strong> ' + pv.dept + '</div>' +
+        '<div><strong>Payee:</strong> ' + pv.payee_name + '</div>' +
+        '<div><strong>Amount:</strong> RM ' + pv.amount + '</div>' +
+        '<div style="grid-column:span 2;"><strong>Purpose:</strong> ' + pv.purpose + '</div>' +
+        '</div>';
+
+      // Show timeline
+      var timelineHtml = '<div style="padding-left:20px;border-left:3px solid var(--brand);">';
+      res.timeline.forEach(function(step) {
+        var icon = "⏳";
+        var color = "#888";
+        if (step.status === "complete") { icon = "✅"; color = "#16a34a"; }
+        else if (step.status === "current") { icon = "🔄"; color = "#3b82f6"; }
+        else if (step.status === "rejected") { icon = "❌"; color = "#ef4444"; }
+
+        timelineHtml += '<div style="margin:12px 0;color:' + color + ';">';
+        timelineHtml += '<strong>' + icon + ' ' + step.step + '</strong>';
+        if (step.date) timelineHtml += ' <small class="muted">(' + step.date + ')</small>';
+        if (step.by) timelineHtml += '<br><small>By: ' + step.by + '</small>';
+        if (step.details) timelineHtml += '<br><small>' + step.details + '</small>';
+        if (step.comment) timelineHtml += '<br><small style="color:#ef4444;">Comment: ' + step.comment + '</small>';
+        timelineHtml += '</div>';
+      });
+      timelineHtml += '</div>';
+      timelineDiv.innerHTML = timelineHtml;
+
+      toastOk("Status loaded.");
+    });
+  }
+
+  /* ============================================================
+     DEPARTMENT HEAD VERIFICATION
+     ============================================================ */
+  function loadDeptHeadPVs() {
+    var pendingBody = document.getElementById("deptHeadPendingBody");
+    var verifiedBody = document.getElementById("deptHeadVerifiedBody");
+    
+    if (!pendingBody) return; // View not available
+    
+    pendingBody.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+    verifiedBody.innerHTML = '<tr><td colspan="8" class="muted">Loading...</td></tr>';
+
+    // Also load departments list
+    loadDepartmentsList();
+
+    runServer("listPVsForDeptHead", undefined, function(res) {
+      if (!res || !res.ok) {
+        pendingBody.innerHTML = '<tr><td colspan="8" class="muted">' + ((res && res.error) || "Not a department head or no PVs from your department.") + '</td></tr>';
+        verifiedBody.innerHTML = '<tr><td colspan="8" class="muted">-</td></tr>';
+        return;
+      }
+
+      // Pending
+      if (!res.pending || !res.pending.length) {
+        pendingBody.innerHTML = '<tr><td colspan="8" class="muted">No PVs awaiting your verification.</td></tr>';
+      } else {
+        var html = "";
+        res.pending.forEach(function(pv) {
+          var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pv.pv_no + '\')">View</button>';
+          var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pv.pv_no + '\')"><i class="fa-solid fa-print"></i></button>';
+          var btnVerify = ' <button class="btn small" onclick="deptHeadAction(\'' + pv.pv_no + '\',\'VERIFY\')">Verify</button>';
+          var btnReject = ' <button class="btn small danger" onclick="deptHeadAction(\'' + pv.pv_no + '\',\'REJECT\')">Reject</button>';
+          
+          html += "<tr>" +
+            "<td>" + pv.pv_no + "</td>" +
+            "<td>" + formatDate(pv.date) + "</td>" +
+            "<td>" + pv.applicant_name + "</td>" +
+            "<td>" + pv.purpose + "</td>" +
+            '<td style="text-align:right;">' + pv.amount + "</td>" +
+            '<td>' + renderStatusPill(pv.status, pv.approvals_count) + '</td>' +
+            '<td style="text-align:right;white-space:nowrap;">' + btnView + btnPrint + btnVerify + btnReject + '</td>' +
+            "</tr>";
+        });
+        pendingBody.innerHTML = html;
+      }
+
+      // Verified
+      if (!res.verified || !res.verified.length) {
+        verifiedBody.innerHTML = '<tr><td colspan="8" class="muted">None verified yet.</td></tr>';
+      } else {
+        var html = "";
+        res.verified.forEach(function(pv) {
+          var verifiedInfo = pv.head_verified_at ? ' <small class="muted">(' + formatDate(pv.head_verified_at) + ')</small>' : '';
+          var btnView = '<button class="btn small" onclick="openPvPreview(\'' + pv.pv_no + '\')">View</button>';
+          var btnPrint = ' <button class="btn small secondary" onclick="printSignedPV(\'' + pv.pv_no + '\')"><i class="fa-solid fa-print"></i></button>';
+          var btnCancel = ' <button class="btn small danger" onclick="cancelPV(\'' + pv.pv_no + '\')" title="Cancel"><i class="fa-solid fa-ban"></i></button>';
+          
+          html += "<tr>" +
+            "<td><i class=\"fa-solid fa-check\" style=\"color:#16a34a;\"></i> " + pv.pv_no + verifiedInfo + "</td>" +
+            "<td>" + formatDate(pv.date) + "</td>" +
+            "<td>" + pv.applicant_name + "</td>" +
+            "<td>" + pv.purpose + "</td>" +
+            '<td style="text-align:right;">' + pv.amount + "</td>" +
+            '<td>' + renderStatusPill(pv.status, pv.approvals_count) + '</td>' +
+            '<td style="text-align:right;white-space:nowrap;">' + btnView + btnPrint + btnCancel + '</td>' +
+            "</tr>";
+        });
+        verifiedBody.innerHTML = html;
+      }
+    });
+  }
+
+  function deptHeadAction(pvNo, action) {
+    var comment = "";
+    if (action === "REJECT") {
+      comment = prompt("Reason for rejection:");
+      if (comment === null) return; // Cancelled
+    }
+
+    toast("warn", action === "VERIFY" ? "Verifying" : "Rejecting", "Please wait...");
+    runServer("deptHeadVerifyPV", [pvNo, action, comment], function(res) {
+      if (res && res.ok) {
+        toastOk(res.message || "Done.");
+        loadDeptHeadPVs();
+        loadApprovals();
+        loadAllPvs();
+      } else {
+        toastErr((res && res.error) || "Action failed.");
+      }
+    });
+  }
+
+  /* ============================================================
+     CHECK IF USER IS DEPARTMENT HEAD
+     ============================================================ */
+  function checkDeptHeadStatus() {
+    runServer("listPVsForDeptHead", undefined, function(res) {
+      var navSection = document.getElementById("navSectionDeptHead");
+      var navList = document.getElementById("navListDeptHead");
+      
+      if (res && res.ok) {
+        // User is a department head, show the menu
+        if (navSection) navSection.style.display = "block";
+        if (navList) navList.style.display = "block";
+      } else {
+        if (navSection) navSection.style.display = "none";
+        if (navList) navList.style.display = "none";
+      }
+    });
+  }
+
+  /* ============================================================
+     PROJECT MANAGEMENT (like Payees)
+     ============================================================ */
+  function addProject() {
+    var name = prompt("Enter new project name:");
+    if (!name || !name.trim()) return;
+
+    runServer("saveProject", name.trim(), function(res) {
+      if (res && res.ok) {
+        toastOk("Project added.");
+        reloadLookups();
+      } else {
+        toastErr((res && res.error) || "Failed to add project.");
+      }
+    });
+  }
+
+  function deleteProject(name) {
+    if (!confirm("Delete project '" + name + "'?")) return;
+
+    runServer("deleteProject", name, function(res) {
+      if (res && res.ok) {
+        toastOk("Project deleted.");
+        reloadLookups();
+      } else {
+        toastErr((res && res.error) || "Failed to delete.");
+      }
+    });
+  }
+
+  /* ============================================================
+     TABLE SORTING
+     ============================================================ */
+  function sortTable(tableId, colIndex) {
+    var table = document.getElementById(tableId);
+    if (!table) return;
+    
+    var tbody = table.querySelector("tbody");
+    var rows = Array.from(tbody.querySelectorAll("tr"));
+    
+    // Get current sort direction
+    var currentDir = table.getAttribute("data-sort-dir-" + colIndex) || "asc";
+    var newDir = currentDir === "asc" ? "desc" : "asc";
+    table.setAttribute("data-sort-dir-" + colIndex, newDir);
+    
+    rows.sort(function(a, b) {
+      var aVal = a.cells[colIndex] ? a.cells[colIndex].textContent.trim() : "";
+      var bVal = b.cells[colIndex] ? b.cells[colIndex].textContent.trim() : "";
+      
+      // Try numeric sort first
+      var aNum = parseFloat(aVal.replace(/[^0-9.-]/g, ""));
+      var bNum = parseFloat(bVal.replace(/[^0-9.-]/g, ""));
+      
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return newDir === "asc" ? aNum - bNum : bNum - aNum;
+      }
+      
+      // String sort
+      return newDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(function(row) { tbody.appendChild(row); });
+  }
+
+  /* ============================================================
+     SEARCH PVs (for Track Status page)
+     ============================================================ */
+  function searchPVs() {
+    var query = (document.getElementById("trackingSearchInput").value || "").trim().toLowerCase();
+    if (!query) {
+      toastWarn("Enter a search term.");
+      return;
+    }
+
+    toast("warn", "Searching", "Please wait...");
+    runServer("searchPVs", query, function(res) {
+      var resultsDiv = document.getElementById("searchResults");
+      var body = document.getElementById("searchResultsBody");
+      
+      document.getElementById("trackingResult").style.display = "none";
+      
+      if (!res || !res.ok || !res.pvs || !res.pvs.length) {
+        resultsDiv.style.display = "block";
+        body.innerHTML = '<tr><td colspan="7" class="muted">No matching PVs found.</td></tr>';
+        return;
+      }
+
+      resultsDiv.style.display = "block";
+      var html = "";
+      res.pvs.forEach(function(pv) {
+        html += "<tr>" +
+          "<td>" + pv.pv_no + "</td>" +
+          "<td>" + formatDate(pv.date) + "</td>" +
+          "<td>" + (pv.applicant_name || "") + "</td>" +
+          "<td>" + (pv.payee_name || "") + "</td>" +
+          '<td style="text-align:right;">' + (pv.amount || 0) + "</td>" +
+          "<td>" + renderStatusPill(pv.status) + "</td>" +
+          '<td><button class="btn small" onclick="trackByPvNo(\'' + pv.pv_no + '\')">Track</button></td>' +
+          "</tr>";
+      });
+      body.innerHTML = html;
+      toastOk("Found " + res.pvs.length + " result(s).");
+    });
+  }
+
+  function trackByPvNo(pvNo) {
+    document.getElementById("trackingInput").value = pvNo;
+    document.getElementById("searchResults").style.display = "none";
+    trackPVStatus();
+  }
+
+  /* ============================================================
+     DEPARTMENTS LIST
+     ============================================================ */
+  function loadDepartmentsList() {
+    var body = document.getElementById("departmentsListBody");
+    if (!body) return;
+    
+    body.innerHTML = '<tr><td colspan="4" class="muted">Loading...</td></tr>';
+    
+    runServer("getDepartments", undefined, function(res) {
+      var isAdmin = LCM.userContext && LCM.userContext.isFinanceAdmin;
+      
+      // Show/hide admin controls
+      var actionsHeader = document.getElementById("deptActionsHeader");
+      var addBtnWrap = document.getElementById("addDeptBtnWrap");
+      if (actionsHeader) actionsHeader.style.display = isAdmin ? "" : "none";
+      if (addBtnWrap) addBtnWrap.style.display = isAdmin ? "block" : "none";
+      
+      if (!res || !res.ok || !res.departments || !res.departments.length) {
+        body.innerHTML = '<tr><td colspan="4" class="muted">No departments configured.</td></tr>';
+        return;
+      }
+
+      var html = "";
+      res.departments.forEach(function(dept) {
+        var deptName = dept.name || "";
+        var headName = dept.head_name || "";
+        var headEmail = dept.head_email || "";
+        
+        if (isAdmin) {
+          // Editable row for admin
+          html += "<tr>" +
+            "<td><strong>" + deptName + "</strong></td>" +
+            '<td><input type="text" id="head_name_' + deptName.replace(/\s/g, "_") + '" value="' + headName + '" placeholder="Head name" style="width:100%;padding:4px;" /></td>' +
+            '<td><input type="email" id="head_email_' + deptName.replace(/\s/g, "_") + '" value="' + headEmail + '" placeholder="Head email" style="width:100%;padding:4px;" /></td>' +
+            '<td style="white-space:nowrap;">' +
+            '<button class="btn small" onclick="saveDeptHead(\'' + deptName + '\')"><i class="fa-solid fa-save"></i></button> ' +
+            '<button class="btn small danger" onclick="deleteDepartment(\'' + deptName + '\')"><i class="fa-solid fa-trash"></i></button>' +
+            '</td></tr>';
+        } else {
+          // Read-only row
+          html += "<tr>" +
+            "<td><strong>" + deptName + "</strong></td>" +
+            "<td>" + (headName || '<span class="muted">Not assigned</span>') + "</td>" +
+            "<td>" + (headEmail || '<span class="muted">-</span>') + "</td>" +
+            "</tr>";
+        }
+      });
+      body.innerHTML = html;
+    });
+  }
+
+  function saveDeptHead(deptName) {
+    var safeId = deptName.replace(/\s/g, "_");
+    var headName = document.getElementById("head_name_" + safeId).value.trim();
+    var headEmail = document.getElementById("head_email_" + safeId).value.trim();
+
+    runServer("saveDepartment", { name: deptName, head_name: headName, head_email: headEmail }, function(res) {
+      if (res && res.ok) {
+        toastOk("Department head updated.");
+        loadDepartmentsList();
+      } else {
+        toastErr((res && res.error) || "Failed to save.");
+      }
+    });
+  }
+
+  function showAddDeptForm() {
+    document.getElementById("addDeptForm").style.display = "block";
+    document.getElementById("addDeptBtnWrap").style.display = "none";
+    document.getElementById("newDeptName").focus();
+  }
+
+  function hideAddDeptForm() {
+    document.getElementById("addDeptForm").style.display = "none";
+    document.getElementById("addDeptBtnWrap").style.display = "block";
+    document.getElementById("newDeptName").value = "";
+    document.getElementById("newDeptHeadName").value = "";
+    document.getElementById("newDeptHeadEmail").value = "";
+  }
+
+  function saveNewDepartment() {
+    var name = document.getElementById("newDeptName").value.trim();
+    var headName = document.getElementById("newDeptHeadName").value.trim();
+    var headEmail = document.getElementById("newDeptHeadEmail").value.trim();
+
+    if (!name) {
+      toastWarn("Enter department name.");
+      return;
+    }
+
+    runServer("saveDepartment", { name: name, head_name: headName, head_email: headEmail }, function(res) {
+      if (res && res.ok) {
+        toastOk("Department saved.");
+        hideAddDeptForm();
+        loadDepartmentsList();
+        reloadLookups();
+      } else {
+        toastErr((res && res.error) || "Failed to save.");
+      }
+    });
+  }
+
+  function deleteDepartment(name) {
+    if (!confirm("Delete department '" + name + "'?")) return;
+
+    runServer("deleteDepartment", name, function(res) {
+      if (res && res.ok) {
+        toastOk("Department deleted.");
+        loadDepartmentsList();
+        reloadLookups();
+      } else {
+        toastErr((res && res.error) || "Failed to delete.");
+      }
+    });
+  }
+
+  function refreshSigCardVisibility() {
+    var card = document.getElementById("signatureAdminCard");
+    if (card) card.style.display = canShare() ? "block" : "none";
+  }
+
+  function refreshStoredSignatures() {
+    var box = document.getElementById("sigStoredList");
+    if (!box) return;
+
+    if (!canShare()) {
+      box.textContent = "Not available for your role.";
+      return;
+    }
+
+    box.textContent = "Loading...";
+    runServer("getRoleSignatures", undefined, function(res) {
+      var sigs = (res && res.signatures) ? res.signatures : null;
+      if (!sigs || !Object.keys(sigs).length) {
+        box.textContent = "No signatures stored.";
+        return;
+      }
+
+      var html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">';
+      Object.keys(sigs).forEach(function(role) {
+        var s = sigs[role] || {};
+        html += '<div style="border:1px solid #ddd;border-radius:10px;background:#fff;padding:8px;">' +
+          '<div style="font-weight:700;font-size:12px;">' + role + '</div>' +
+          '<div class="muted">' + (s.name || "(no name)") + '</div>' +
+          (s.url ? '<img src="' + s.url + '" style="max-height:40px;margin-top:6px;">' : '') +
+          '</div>';
+      });
+      html += '</div>';
+      box.innerHTML = html;
+    }, function() {
+      box.textContent = "Failed to load.";
+    });
+  }
+
+  function saveSignature() {
+    if (!canShare()) { toastWarn("Not authorized."); return; }
+
+    var role = document.getElementById("sigRoleSelect").value;
+    var name = document.getElementById("sigDisplayName").value || "";
+    var fileInput = document.getElementById("sigFile");
+    var file = (fileInput && fileInput.files && fileInput.files[0]) ? fileInput.files[0] : null;
+
+    if (!file) { toastWarn("Choose a signature image."); return; }
+
+    toast("warn", "Uploading", "Saving signature...");
+    readFileAsDataUrl(file).then(function(dataUrl) {
+      runServer("saveRoleSignature", [role, name, dataUrl], function(res) {
+        if (res && res.ok) {
+          toastOk("Signature saved.");
+          fileInput.value = "";
+          refreshStoredSignatures();
+        } else {
+          toastErr((res && res.error) || "Save failed.");
+        }
+      });
+    }).catch(function() {
+      toastErr("Failed to read file.");
+    });
+  }
+
+  /* ============================================================
+     INIT: User Context, Lookups, Deep Links, Events
+     ============================================================ */
+  function initUserContext() {
+    runServer("getUserContext", undefined, function(ctx) {
+      LCM.user = ctx || {};
+      document.getElementById("sidebarUserEmail").textContent = ctx.email || "(unknown)";
+
+      var roles = getRoles();
+      var badges = [];
+      if (roles.isFinanceAdmin) badges.push("Finance Admin");
+      if (roles.isBishop) badges.push("Bishop");
+      if (roles.isTreasurer) badges.push("Treasurer");
+      if (roles.isSecretary) badges.push("Secretary");
+
+      document.getElementById("sidebarRoles").textContent = badges.length ? badges.join(" • ") : "Standard user";
+
+      var headerBadges = document.getElementById("headerBadges");
+      headerBadges.innerHTML = "";
+      badges.forEach(function(b) {
+        var span = document.createElement("span");
+        span.className = "badge-role";
+        span.innerHTML = '<i class="fa-solid fa-shield-check"></i> ' + b;
+        headerBadges.appendChild(span);
+      });
+
+      if (ctx.testRole) {
+        document.getElementById("testRoleSelect").value = ctx.testRole;
+        document.getElementById("testRoleLabel").textContent = ctx.testRole;
+      }
+
+      refreshSigCardVisibility();
+    });
+  }
+
+  function initLookups() {
+    runServer("getLookups", undefined, function(lookups) {
+      LCM.lookups = lookups || {};
+      populateLookups();
+    });
+  }
+
+  function handleDeepLink() {
+    var page = (window.LCM_SERVER && window.LCM_SERVER.page) || "";
+    var pv = (window.LCM_SERVER && window.LCM_SERVER.pv) || "";
+
+    if (page && page !== "claim") {
+      setView(page);
+      return;
+    }
+
+    if (page === "claim" && pv) {
+      setView("claims");
+      setTimeout(function() { openPvDetail(pv, "readonly"); }, 400);
+    }
+  }
+
+  function wireUiEvents() {
+    document.getElementById("btnAddLine").addEventListener("click", addLineRow);
+    document.getElementById("btnAddAttachment").addEventListener("click", addAttachment);
+    document.getElementById("btnUploadFiles").addEventListener("click", uploadFiles);
+    document.getElementById("paymentMethod").addEventListener("change", updatePaymentMethodUI);
+    document.getElementById("btnAddDept").addEventListener("click", promptAddDept);
+    document.getElementById("btnAddProject").addEventListener("click", promptAddProject);
+    document.getElementById("btnAddBank").addEventListener("click", promptAddBank);
+    document.getElementById("btnAddPayee").addEventListener("click", openAddPayeeModal);
+    document.getElementById("btnDeletePayee").addEventListener("click", deleteSelectedPayee);
+    document.getElementById("btnSubmitPV").addEventListener("click", submitPV);
+    document.getElementById("btnSaveFavourite").addEventListener("click", saveFavouriteTemplate);
+    document.getElementById("btnLoadClaims").addEventListener("click", loadMyClaims);
+    document.getElementById("btnLoadAllPvs").addEventListener("click", loadAllPvs);
+    document.getElementById("allPvsStatusFilter").addEventListener("change", loadAllPvs);
+    document.getElementById("btnRefreshApprovals").addEventListener("click", loadApprovals);
+    document.getElementById("btnRefreshSignatories").addEventListener("click", loadSignatories);
+    document.getElementById("btnSaveRecurring").addEventListener("click", saveRecurringExpense);
+    document.getElementById("btnCloseModal").addEventListener("click", function() { closeModal("pvDetailModal"); });
+    document.getElementById("pvDetailBackdrop").addEventListener("click", function(ev) {
+      if (ev.target === document.getElementById("pvDetailBackdrop")) closeModal("pvDetailModal");
+    });
+    document.getElementById("btnApplyTestRole").addEventListener("click", applyTestRole);
+    document.getElementById("btnDebugContext").addEventListener("click", runDebugContext);
+    document.getElementById("btnCleanupPVs").addEventListener("click", cleanupInvalidPVs);
+    document.getElementById("btnSaveSignature").addEventListener("click", saveSignature);
+    document.getElementById("btnRefreshSignatures").addEventListener("click", refreshStoredSignatures);
+    
+    // Track status
+    if (document.getElementById("btnTrackStatus")) {
+      document.getElementById("btnTrackStatus").addEventListener("click", trackPVStatus);
+      document.getElementById("trackingInput").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") trackPVStatus();
+      });
+    }
+    if (document.getElementById("btnSearchPVs")) {
+      document.getElementById("btnSearchPVs").addEventListener("click", searchPVs);
+      document.getElementById("trackingSearchInput").addEventListener("keypress", function(e) {
+        if (e.key === "Enter") searchPVs();
+      });
+    }
+    
+    // Dept head
+    if (document.getElementById("btnRefreshDeptHead")) {
+      document.getElementById("btnRefreshDeptHead").addEventListener("click", loadDeptHeadPVs);
+    }
+    if (document.getElementById("btnRefreshDepts")) {
+      document.getElementById("btnRefreshDepts").addEventListener("click", loadDepartmentsList);
+    }
+    if (document.getElementById("btnShowAddDept")) {
+      document.getElementById("btnShowAddDept").addEventListener("click", showAddDeptForm);
+    }
+    if (document.getElementById("btnSaveNewDept")) {
+      document.getElementById("btnSaveNewDept").addEventListener("click", saveNewDepartment);
+    }
+    if (document.getElementById("btnCancelNewDept")) {
+      document.getElementById("btnCancelNewDept").addEventListener("click", hideAddDeptForm);
+    }
+  }
+
+  function initApp() {
+    // Set today's date
+    var today = new Date().toISOString().slice(0, 10);
+    document.getElementById("pvDate").value = today;
+    document.getElementById("recNextDate").value = today;
+
+    setupNav();
+    wireUiEvents();
+
+    // Init line items
+    LCM.lineCounter = 0;
+    document.getElementById("pvLinesBody").innerHTML = "";
+    addLineRow();
+    renderAttachments();
+    updatePaymentMethodUI();
+
+    initUserContext();
+    initLookups();
+
+    // Check if user is department head
+    setTimeout(checkDeptHeadStatus, 800);
+
+    setTimeout(loadMyClaims, 600);
+    handleDeepLink();
+  }
+
+  document.addEventListener("DOMContentLoaded", initApp);
+
+  /* === PART 3 END === */
+  </script>
+</body>
+</html>
