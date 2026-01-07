@@ -19,6 +19,7 @@ const SHEET_SIGNATURES = "Signatures";
 const SHEET_SHARES     = "Shares";
 const SHEET_LOGS       = "Logs";
 const SHEET_ROLES      = "Roles";
+const SHEET_MINISTRY_HEADS = "MinistryHeads";
 
 /* =========================
    ROLE EMAIL MAPPINGS
@@ -64,6 +65,18 @@ function ss_() { return SpreadsheetApp.openById(SS_ID); }
 function getSheet_(name) {
   const sh = ss_().getSheetByName(name);
   if (!sh) throw new Error("Sheet not found: " + name);
+  return sh;
+}
+
+function ensureSheet_(name, headers) {
+  const ss = ss_();
+  let sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    if (headers && headers.length) {
+      sh.appendRow(headers);
+    }
+  }
   return sh;
 }
 
@@ -123,6 +136,20 @@ function updateRow_(sh, matchCol, matchVal, updates) {
   return false;
 }
 
+function update_(sh, idx, updates) {
+  if (!sh) throw new Error("update_: missing sheet");
+  const headers = getHeaders_(sh);
+  if (!headers.length) throw new Error("update_: missing headers");
+  const rowNumber = idx + 2;
+  Object.keys(updates || {}).forEach(key => {
+    const colIdx = headers.indexOf(key);
+    if (colIdx !== -1) {
+      sh.getRange(rowNumber, colIdx + 1).setValue(updates[key]);
+    }
+  });
+  return true;
+}
+
 function id_(prefix) { 
   return prefix + "-" + Utilities.getUuid().slice(0, 8).toUpperCase(); 
 }
@@ -142,6 +169,31 @@ function log_(event, data) {
       sh.appendRow([now_(), event, JSON.stringify(data)]);
     }
   } catch (e) { console.error("log_ error:", e); }
+}
+
+function ensurePvColumns_() {
+  const sh = ensureSheet_(SHEET_PVS, []);
+  const headers = getHeaders_(sh);
+  if (!headers.length) return;
+  const required = [
+    "ministry",
+    "ministry_verified",
+    "ministry_verified_by",
+    "ministry_verified_at",
+    "ministry_verified_comment",
+    "ministry_verify_bypassed",
+    "ministry_bypass_by",
+    "ministry_bypass_at",
+    "ministry_bypass_reason"
+  ];
+  const missing = required.filter(col => !headers.includes(col));
+  if (missing.length) {
+    sh.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
+  }
+}
+
+function ensureMinistryHeadsSheet_() {
+  return ensureSheet_(SHEET_MINISTRY_HEADS, ["Ministry", "Head_Email", "Head_Name"]);
 }
 
 /* =========================
@@ -261,6 +313,8 @@ function debugWebAppContext() {
    ========================= */
 function getLookups() {
   const ss = ss_();
+  ensureMinistryHeadsSheet_();
+  ensurePvColumns_();
 
   // Departments from Departments sheet (with heads)
   let departments = [];
@@ -304,6 +358,7 @@ function getLookups() {
     departmentNames: departments.map(d => d.name),
     projects: projects,
     banks: look.filter(r => r.category === "banks").map(r => r.value),
+    ministries: look.filter(r => r.category === "ministry").map(r => r.value),
     payees: payees.map(p => ({ 
       name: p.name || "", 
       bank_name: p.bank_name || "", 
@@ -571,6 +626,7 @@ function uploadAttachmentFile(dataUrl, filename, mimeType) {
 function submitPublicPV(d) {
   try {
     const ctx = getUserContext();
+    ensurePvColumns_();
     const sh = getSheet_(SHEET_PVS);
 
     // Generate PV number
@@ -596,6 +652,7 @@ function submitPublicPV(d) {
     const initialStatus = (hasDeptHead && !isApplicantHead) ? "PENDING_HEAD" : "PENDING";
 
     // Build row matching YOUR column structure
+    const ministry = d.ministry || d.dept || "";
     const rowData = {
       pv_no: pvNo,
       date: d.pvDate || "",
@@ -605,6 +662,7 @@ function submitPublicPV(d) {
       applicant_name: d.applicant_name || "",
       applicant_email: d.applicant_email || ctx.email || "",
       dept: d.dept || "",
+      ministry: ministry,
       dept_head_name: deptInfo.head_name || "",
       dept_head_email: deptInfo.head_email || "",
       project: d.project || "",
@@ -629,7 +687,15 @@ function submitPublicPV(d) {
       tracking_token: trackingToken,
       head_verified: (hasDeptHead && !isApplicantHead) ? "NO" : "N/A",
       head_verified_at: "",
-      head_comment: ""
+      head_comment: "",
+      ministry_verified: "NO",
+      ministry_verified_by: "",
+      ministry_verified_at: "",
+      ministry_verified_comment: "",
+      ministry_verify_bypassed: "NO",
+      ministry_bypass_by: "",
+      ministry_bypass_at: "",
+      ministry_bypass_reason: ""
     };
 
     const success = append_(sh, rowData);
@@ -728,7 +794,34 @@ function trackPVStatus(identifier) {
       }
     }
 
+    const ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
+    const ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
+    const ministryReady = ministryVerified || ministryBypassed;
+
     if (["REVIEWED", "APPROVED"].includes(status)) {
+      if (ministryVerified) {
+        timeline.push({
+          step: "Ministry Verified",
+          status: "complete",
+          date: pv.ministry_verified_at ? formatDateStr_(pv.ministry_verified_at) : "",
+          by: pv.ministry_verified_by || ""
+        });
+      } else if (ministryBypassed) {
+        timeline.push({
+          step: "Verification Bypassed",
+          status: "complete",
+          date: pv.ministry_bypass_at ? formatDateStr_(pv.ministry_bypass_at) : "",
+          by: pv.ministry_bypass_by || ""
+        });
+      } else {
+        timeline.push({
+          step: "Awaiting Ministry Head Verification",
+          status: "current"
+        });
+      }
+    }
+
+    if (["REVIEWED", "APPROVED"].includes(status) && ministryReady) {
       const approvalCount = approvedRoles.length;
       if (approvalCount < 2) {
         timeline.push({
@@ -859,6 +952,16 @@ function searchPVs(query) {
 /* =========================
    DEPARTMENT HEAD VERIFICATION
    ========================= */
+function getMinistriesForHead_(email) {
+  const sh = ensureMinistryHeadsSheet_();
+  const heads = rows_(sh);
+  const key = String(email || "").toLowerCase().trim();
+  return heads
+    .filter(r => String(r.Head_Email || r.head_email || "").toLowerCase().trim() === key)
+    .map(r => r.Ministry || r.ministry || "")
+    .filter(Boolean);
+}
+
 function deptHeadVerifyPV(pvNo, action, comment) {
   try {
     const ctx = getUserContext();
@@ -932,7 +1035,10 @@ function listPVsForDeptHead() {
     const pending = pvs.filter(p => String(p.status || "").toUpperCase() === "PENDING_HEAD");
     const verified = pvs.filter(p => p.head_verified === "YES");
 
-    const mapPv = pv => ({
+    const mapPv = pv => {
+      const approvals = jsonParse_(pv.approvals_json, []);
+      const approvalCount = approvals.filter(a => a.decision === "APPROVED").length;
+      return ({
       pv_no: pv.pv_no || "",
       date: pv.date ? String(pv.date) : "",
       applicant_name: pv.applicant_name || "",
@@ -945,8 +1051,10 @@ function listPVsForDeptHead() {
       head_verified: pv.head_verified || "",
       head_verified_at: pv.head_verified_at ? String(pv.head_verified_at) : "",
       dept_head_name: pv.dept_head_name || "",
-      dept_head_email: pv.dept_head_email || ""
-    });
+      dept_head_email: pv.dept_head_email || "",
+      approvals_count: approvalCount + "/2"
+      });
+    };
 
     return {
       ok: true,
@@ -955,6 +1063,144 @@ function listPVsForDeptHead() {
     };
   } catch (e) {
     console.error("listPVsForDeptHead error:", e);
+    return { ok: false, error: e.message };
+  }
+}
+
+/* =========================
+   MINISTRY HEAD VERIFICATION
+   ========================= */
+function listPVsForMinistryHead() {
+  try {
+    ensurePvColumns_();
+    const ctx = getUserContext();
+    const ministries = getMinistriesForHead_(ctx.email);
+
+    if (!ministries.length && !ctx.isFinanceAdmin) {
+      return { ok: false, error: "Not assigned as ministry head" };
+    }
+
+    const sh = getSheet_(SHEET_PVS);
+    let pvs = rows_(sh);
+
+    if (!ctx.isFinanceAdmin) {
+      pvs = pvs.filter(p => ministries.includes(p.ministry));
+    }
+
+    const pending = pvs.filter(p => {
+      const verified = String(p.ministry_verified || "").toUpperCase() === "YES";
+      const bypassed = String(p.ministry_verify_bypassed || "").toUpperCase() === "YES";
+      return !verified && !bypassed;
+    });
+    const verified = pvs.filter(p => String(p.ministry_verified || "").toUpperCase() === "YES");
+
+    const mapPv = pv => {
+      const approvals = jsonParse_(pv.approvals_json, []);
+      const approvalCount = approvals.filter(a => a.decision === "APPROVED").length;
+      return ({
+      pv_no: pv.pv_no || "",
+      date: pv.date ? String(pv.date) : "",
+      applicant_name: pv.applicant_name || "",
+      applicant_email: pv.applicant_email || "",
+      ministry: pv.ministry || "",
+      dept: pv.dept || "",
+      payee_name: pv.payee_name || "",
+      amount: pv.amount || 0,
+      status: pv.status || "",
+      purpose: pv.purpose || "",
+      ministry_verified: pv.ministry_verified || "",
+      ministry_verified_at: pv.ministry_verified_at ? String(pv.ministry_verified_at) : "",
+      ministry_verify_bypassed: pv.ministry_verify_bypassed || "",
+      approvals_count: approvalCount + "/2"
+      });
+    };
+
+    return {
+      ok: true,
+      pending: pending.map(mapPv),
+      verified: verified.map(mapPv)
+    };
+  } catch (e) {
+    console.error("listPVsForMinistryHead error:", e);
+    return { ok: false, error: e.message };
+  }
+}
+
+function ministryHeadVerifyPV(pvNo, action, comment) {
+  try {
+    ensurePvColumns_();
+    const ctx = getUserContext();
+    const sh = getSheet_(SHEET_PVS);
+    const allPvs = rows_(sh);
+    const pv = allPvs.find(p => p.pv_no === pvNo);
+
+    if (!pv) return { ok: false, error: "PV not found" };
+
+    const ministries = getMinistriesForHead_(ctx.email);
+    const userEmail = String(ctx.email || "").toLowerCase().trim();
+    const ministry = pv.ministry || "";
+    const canVerify = ctx.isFinanceAdmin || ministries.includes(ministry);
+
+    if (!canVerify) {
+      return { ok: false, error: "You are not the ministry head for this PV" };
+    }
+
+    const updates = {
+      updated_at: now_(),
+      ministry_verified_comment: comment || ""
+    };
+
+    if (action === "VERIFY" || action === "APPROVED") {
+      updates.ministry_verified = "YES";
+      updates.ministry_verified_by = userEmail;
+      updates.ministry_verified_at = now_();
+      updates.ministry_verify_bypassed = "NO";
+      updates.ministry_bypass_by = "";
+      updates.ministry_bypass_at = "";
+      updates.ministry_bypass_reason = "";
+      updateRow_(sh, "pv_no", pvNo, updates);
+      log_("Ministry verified", { pv_no: pvNo, by: ctx.email });
+      return { ok: true, status: pv.status || "", message: "Ministry verification recorded." };
+    } else if (action === "REJECT" || action === "REJECTED") {
+      updates.ministry_verified = "REJECTED";
+      updates.ministry_verified_by = userEmail;
+      updates.ministry_verified_at = now_();
+      updateRow_(sh, "pv_no", pvNo, updates);
+      log_("Ministry rejected", { pv_no: pvNo, by: ctx.email });
+      return { ok: true, status: pv.status || "", message: "Ministry rejection recorded." };
+    }
+
+    return { ok: false, error: "Invalid action" };
+  } catch (e) {
+    console.error("ministryHeadVerifyPV error:", e);
+    return { ok: false, error: e.message };
+  }
+}
+
+function adminBypassMinistryVerification(pvNo, reason) {
+  try {
+    ensurePvColumns_();
+    const ctx = getUserContext();
+    if (!ctx.isFinanceAdmin) {
+      return { ok: false, error: "Not authorized as Finance Admin" };
+    }
+
+    const updates = {
+      ministry_verify_bypassed: "YES",
+      ministry_bypass_by: ctx.email,
+      ministry_bypass_at: now_(),
+      ministry_bypass_reason: reason || "",
+      updated_at: now_()
+    };
+
+    const sh = getSheet_(SHEET_PVS);
+    const updated = updateRow_(sh, "pv_no", pvNo, updates);
+    if (!updated) return { ok: false, error: "PV not found" };
+
+    log_("Ministry verification bypassed", { pv_no: pvNo, by: ctx.email, reason: reason || "" });
+    return { ok: true };
+  } catch (e) {
+    console.error("adminBypassMinistryVerification error:", e);
     return { ok: false, error: e.message };
   }
 }
@@ -1093,6 +1339,7 @@ function listAllPVs(filter) {
    ========================= */
 function getPVByNo(pvNo, token) {
   try {
+    ensurePvColumns_();
     const sh = getSheet_(SHEET_PVS);
     const allPvs = rows_(sh);
     const pv = allPvs.find(p => p.pv_no === pvNo);
@@ -1115,6 +1362,7 @@ function getPVByNo(pvNo, token) {
       applicant_name: pv.applicant_name || "",
       applicant_email: pv.applicant_email || "",
       dept: pv.dept || "",
+      ministry: pv.ministry || "",
       project: pv.project || "",
       payee_name: pv.payee_name || "",
       payment_method: pv.payment_method || "",
@@ -1129,7 +1377,15 @@ function getPVByNo(pvNo, token) {
       approvals: approvals,
       approvals_count: approvalCount + "/2",
       created_at: pv.created_at ? String(pv.created_at) : "",
-      signed_pdf_url: pv.signed_pdf_url || ""
+      signed_pdf_url: pv.signed_pdf_url || "",
+      ministry_verified: pv.ministry_verified || "",
+      ministry_verified_by: pv.ministry_verified_by || "",
+      ministry_verified_at: pv.ministry_verified_at ? String(pv.ministry_verified_at) : "",
+      ministry_verified_comment: pv.ministry_verified_comment || "",
+      ministry_verify_bypassed: pv.ministry_verify_bypassed || "",
+      ministry_bypass_by: pv.ministry_bypass_by || "",
+      ministry_bypass_at: pv.ministry_bypass_at ? String(pv.ministry_bypass_at) : "",
+      ministry_bypass_reason: pv.ministry_bypass_reason || ""
     };
 
     return { ok: true, pv: cleanPv };
@@ -1493,6 +1749,7 @@ function updatePV(d) {
    ========================= */
 function listPVsForSignatory(filter) {
   try {
+    ensurePvColumns_();
     const ctx = getUserContext();
     // Allow Finance Admin to view (but not act)
     if (!ctx.isSignatory && !ctx.isFinanceAdmin) {
@@ -1535,11 +1792,14 @@ function listPVsForSignatory(filter) {
         status: pv.status || "",
         applicant_name: pv.applicant_name || "",
         dept: pv.dept || "",
+        ministry: pv.ministry || "",
         payee_name: pv.payee_name || "",
         amount: pv.amount || 0,
         approvals_count: approvalCount + "/2",
         approval_details: approvalDetails,
         currentUserApproved: currentUserApproved,
+        ministry_verified: pv.ministry_verified || "",
+        ministry_verify_bypassed: pv.ministry_verify_bypassed || "",
         line_items: jsonParse_(pv.line_items_json, []),
         attachments: jsonParse_(pv.attachments_json, [])
       };
@@ -1565,6 +1825,11 @@ function signatoryActOnPV(pvNo, action, comment, visibility) {
     const pv = result.pv;
     if (pv.status !== "REVIEWED") {
       return { ok: false, error: "PV is not in REVIEWED status" };
+    }
+    const ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
+    const ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
+    if (!ministryVerified && !ministryBypassed) {
+      return { ok: false, error: "Ministry verification is required before signatory approval" };
     }
 
     let approvals = pv.approvals || [];
@@ -1829,6 +2094,25 @@ function buildSignedPvHtml_(pv, signatures) {
       '</div></div>';
   }
 
+  const ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
+  const ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
+  let ministryHtml = "";
+  if (ministryVerified || ministryBypassed) {
+    const ministryStatus = ministryVerified ? "VERIFIED" : "BYPASSED";
+    const ministryBy = ministryVerified ? (pv.ministry_verified_by || "") : (pv.ministry_bypass_by || "");
+    const ministryAt = ministryVerified ? (pv.ministry_verified_at || "") : (pv.ministry_bypass_at || "");
+    const ministryComment = ministryVerified ? (pv.ministry_verified_comment || "") : (pv.ministry_bypass_reason || "");
+
+    ministryHtml = '<div style="margin-top:25px;">' +
+      '<div style="font-weight:bold;font-size:11px;margin-bottom:8px;border-bottom:1px solid #000;padding-bottom:5px;">MINISTRY VERIFICATION (' + ministryStatus + ')</div>' +
+      '<div style="font-size:10px;line-height:1.4;">' +
+      '<div><strong>Ministry:</strong> ' + (pv.ministry || pv.dept || "") + '</div>' +
+      (ministryBy ? '<div><strong>By:</strong> ' + ministryBy + '</div>' : '') +
+      (ministryAt ? '<div><strong>At:</strong> ' + formatDateDDMMYYYY(ministryAt) + '</div>' : '') +
+      (ministryComment ? '<div><strong>Comment:</strong> ' + ministryComment + '</div>' : '') +
+      '</div></div>';
+  }
+
   // Build signatures - only the 2 signatories who approved
   let signaturesHtml = "";
   const approvedSignatories = approvals.filter(a => a.decision === "APPROVED");
@@ -1889,7 +2173,7 @@ function buildSignedPvHtml_(pv, signatures) {
     '<tr><td style="font-size:11px;width:180px;vertical-align:top;"><strong>PAY TO:</strong></td>' +
     '<td style="font-size:12px;font-weight:bold;">' + (pv.payee_name || '').toUpperCase() + '</td></tr>' +
     '<tr><td style="font-size:11px;vertical-align:top;"><strong>MINISTRY / DPT / ACCOUNT:</strong></td>' +
-    '<td style="font-size:11px;">' + (pv.dept || '') + '</td></tr>' +
+    '<td style="font-size:11px;">' + (pv.ministry || pv.dept || '') + '</td></tr>' +
     '</table></td>' +
     '<td style="text-align:right;font-size:11px;vertical-align:top;">' +
     'Voucher No : <strong>' + (pv.pv_no || '') + '</strong><br>' +
@@ -1927,6 +2211,9 @@ function buildSignedPvHtml_(pv, signatures) {
     
     // Department Head Verification (VERIFIED BY)
     deptHeadHtml +
+
+    // Ministry Verification
+    ministryHtml +
     
     // Signatories (APPROVED BY)
     '<div style="margin-top:30px;">' +
@@ -2023,7 +2310,15 @@ function getPVForPreview(pvNo) {
         dept_head_name: pv.dept_head_name || "",
         dept_head_email: pv.dept_head_email || "",
         head_verified: pv.head_verified || "",
-        ministry_verified: pv.ministry_verified || pv.head_verified || ""
+        ministry: pv.ministry || "",
+        ministry_verified: pv.ministry_verified || "",
+        ministry_verified_by: pv.ministry_verified_by || "",
+        ministry_verified_at: pv.ministry_verified_at || "",
+        ministry_verified_comment: pv.ministry_verified_comment || "",
+        ministry_verify_bypassed: pv.ministry_verify_bypassed || "",
+        ministry_bypass_by: pv.ministry_bypass_by || "",
+        ministry_bypass_at: pv.ministry_bypass_at || "",
+        ministry_bypass_reason: pv.ministry_bypass_reason || ""
       },
       signatures: signatures
     };
@@ -2100,12 +2395,18 @@ function revokePV(pvNo, reason) {
     // Reset status to PENDING and clear approvals
     const updates = {
       status: "PENDING",
-      approvals: "[]",
+      approvals_json: "[]",
       approvals_count: "0/2",
       head_verified: pv.dept_head_name ? "NO" : "N/A",
       head_verified_at: "",
       ministry_verified: "",
+      ministry_verified_by: "",
       ministry_verified_at: "",
+      ministry_verified_comment: "",
+      ministry_verify_bypassed: "NO",
+      ministry_bypass_by: "",
+      ministry_bypass_at: "",
+      ministry_bypass_reason: "",
       revoked_at: now_(),
       revoked_by: ctx.email,
       revoked_reason: reason || "",
