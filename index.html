@@ -74,6 +74,12 @@
     .page-title{font-family:"Cinzel",serif;font-size:24px;margin:0 0 4px;}
     .page-subtitle{margin:0;font-size:13px;color:#666;}
     .badge-role{font-size:11px;padding:4px 9px;border-radius:999px;background:#e0ecff;color:#1d4ed8;margin-left:6px;display:inline-flex;align-items:center;gap:6px;}
+    .status-badge{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:4px 10px;font-size:10px;font-weight:700;letter-spacing:.06em;margin-left:8px;border:1px solid transparent;}
+    .status-badge.pending{background:#f3f4f6;color:#374151;border-color:#d1d5db;}
+    .status-badge.reviewed{background:#dbeafe;color:#1e40af;border-color:#bfdbfe;}
+    .status-badge.verified{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe;}
+    .status-badge.approved{background:#dcfce7;color:#166534;border-color:#bbf7d0;}
+    .status-badge.rejected{background:#fee2e2;color:#991b1b;border-color:#fecaca;}
     .card{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-soft);padding:18px 20px 20px;margin-bottom:18px;}
     .card-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap;}
     .card-title{font-family:"Cinzel",serif;font-size:18px;margin:0;}
@@ -192,7 +198,13 @@
       <section id="view-pv" class="view active">
         <div class="card">
           <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <div><div style="font-family:'Cinzel',serif;font-size:20px;font-weight:700;">PAYMENT VOUCHER</div><div style="font-size:11px;color:#777;">Lutheran Church in Malaysia</div></div>
+            <div>
+              <div style="font-family:'Cinzel',serif;font-size:20px;font-weight:700;display:flex;align-items:center;gap:6px;">
+                PAYMENT VOUCHER
+                <span class="status-badge pending" id="pvStatusBadge">PENDING</span>
+              </div>
+              <div style="font-size:11px;color:#777;">Lutheran Church in Malaysia</div>
+            </div>
             <div style="text-align:right;font-size:12px;"><div>PV No: <strong id="pvNumberPreview">(auto)</strong></div><div style="margin-top:6px;">Date:<input type="date" id="pvDate" style="width:150px;margin-left:6px;" /></div></div>
           </div>
           <div class="divider"></div>
@@ -200,7 +212,6 @@
             <div><label class="field-label">Applicant</label><input type="text" id="applicantName" placeholder="Your name" /></div>
             <div>
               <label class="field-label">Department <span class="label-note">(required)</span></label>
-              <label class="field-label">Department</label>
               <div class="field"><select id="deptSelect"></select><button class="icon-btn" type="button" id="btnAddDept"><i class="fa-solid fa-plus"></i></button></div>
               <label class="field-label" style="margin-top:8px;">Ministry</label>
               <select id="ministrySelect"></select>
@@ -463,9 +474,48 @@
           <div class="card" style="margin-top:14px;background:#fbfaf8;" id="signatureAdminCard">
             <div class="card-title-row"><div><h4 style="margin:0;">Signatures</h4></div><button class="btn small secondary" type="button" id="btnRefreshSignatures"><i class="fa-solid fa-rotate"></i></button></div>
             <div class="grid-2">
-              <div><label class="field-label">Role</label><select id="sigRoleSelect"><option value="FINANCE_ADMIN">Finance Admin</option><option value="BISHOP">Bishop</option><option value="TREASURER">Treasurer</option><option value="SECRETARY">Secretary</option></select><label class="field-label" style="margin-top:8px;">Name</label><input type="text" id="sigDisplayName" /><label class="field-label" style="margin-top:8px;">Image</label><input type="file" id="sigFile" accept="image/*" /><button class="btn small" type="button" id="btnSaveSignature" style="margin-top:8px;"><i class="fa-solid fa-save"></i> Save</button></div>
+              <div><label class="field-label">Role</label><select id="sigRoleSelect"><option value="FINANCE_ADMIN">Finance Admin</option><option value="BISHOP">Bishop</option><option value="TREASURER">Treasurer</option><option value="SECRETARY">Secretary</option><option value="MINISTRY_HEAD">Ministry Head</option></select><label class="field-label" style="margin-top:8px;">Name</label><input type="text" id="sigDisplayName" /><label class="field-label" style="margin-top:8px;">Image</label><input type="file" id="sigFile" accept="image/*" /><button class="btn small" type="button" id="btnSaveSignature" style="margin-top:8px;"><i class="fa-solid fa-save"></i> Save</button></div>
               <div><label class="field-label">Stored Signatures</label><div id="sigStoredList" class="muted">Loading...</div></div>
             </div>
+          </div>
+          <div class="card" style="margin-top:14px;background:#fbfaf8;" id="ministryHeadAdminCard">
+            <div class="card-title-row">
+              <div><h4 style="margin:0;">Ministry Verification Assignments</h4><p class="card-subtitle">Assign ministry heads and supplementary verifiers.</p></div>
+              <button class="btn small secondary" type="button" id="btnRefreshMinistryHeads"><i class="fa-solid fa-rotate"></i></button>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Ministry / Department</th><th>Verifier Name</th><th>Email</th><th>Supplementary</th><th id="ministryHeadActionsHeader" style="width:140px;display:none;"></th></tr></thead>
+                <tbody id="ministryHeadListBody"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+              </table>
+            </div>
+            <div id="ministryHeadForm" style="display:none;margin-top:12px;padding:12px;background:#f0f0f0;border-radius:8px;">
+              <div class="grid-3" style="gap:10px;">
+                <div>
+                  <label class="field-label">Ministry / Department</label>
+                  <select id="ministryHeadMinistry"></select>
+                </div>
+                <div>
+                  <label class="field-label">Verifier Name</label>
+                  <input type="text" id="ministryHeadName" placeholder="Verifier name" />
+                </div>
+                <div>
+                  <label class="field-label">Verifier Email</label>
+                  <input type="email" id="ministryHeadEmail" placeholder="Verifier email" />
+                </div>
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
+                  <input type="checkbox" id="ministryHeadSupplementary" />
+                  Supplementary verifier
+                </label>
+                <div>
+                  <button class="btn small" type="button" id="btnSaveMinistryHead">Save Assignment</button>
+                  <button class="btn small secondary" type="button" id="btnCancelMinistryHead">Cancel</button>
+                </div>
+              </div>
+            </div>
+            <div id="ministryHeadBtnWrap" style="margin-top:12px;display:none;"><button class="btn small" type="button" id="btnShowMinistryHeadForm"><i class="fa-solid fa-plus"></i> Add Verifier</button></div>
           </div>
         </div>
       </section>
@@ -519,8 +569,18 @@
     lineCounter: 0,
     currentView: "pv",
     recurring: [],
-    favourites: []
+    favourites: [],
+    editingMinistryHeadRow: null
   };
+  var DEFAULT_MINISTRIES = [
+    "LCM HQ Office",
+    "LCM Mission",
+    "LCM Education",
+    "LCM YAY",
+    "Property",
+    "Worship",
+    "Others"
+  ];
 
   /* ============================================================
      SERVER COMMUNICATION
@@ -625,7 +685,7 @@
     signatories:{ title: "Signatory Approval", sub: "Bishop/Treasurer/Secretary.", onEnter: loadSignatories },
     recurring:  { title: "Recurring Expenses", sub: "Monthly/yearly expenses.", onEnter: loadRecurring },
     favourites: { title: "Favourites", sub: "Saved PV templates.", onEnter: loadFavourites },
-    settings:   { title: "Settings", sub: "Configuration.", onEnter: function() { refreshStoredSignatures(); refreshSigCardVisibility(); } }
+    settings:   { title: "Settings", sub: "Configuration.", onEnter: function() { refreshStoredSignatures(); refreshSigCardVisibility(); refreshMinistryHeadCardVisibility(); loadMinistryHeadAssignments(); } }
   };
 
   function setView(viewName) {
@@ -664,13 +724,24 @@
       isBishop: !!u.isBishop,
       isTreasurer: !!u.isTreasurer,
       isSecretary: !!u.isSecretary,
-      isSignatory: !!u.isSignatory
+      isSignatory: !!u.isSignatory,
+      isMinistryHead: !!u.isMinistryHead
     };
   }
 
   function canShare() {
     var r = getRoles();
     return r.isFinanceAdmin || r.isBishop || r.isTreasurer || r.isSecretary;
+  }
+
+  function canManageSignatures() {
+    var r = getRoles();
+    return r.isFinanceAdmin || r.isBishop || r.isTreasurer || r.isSecretary || r.isMinistryHead;
+  }
+
+  function canManageMinistryHeads() {
+    var r = getRoles();
+    return r.isFinanceAdmin || r.isSignatory;
   }
 
   /* ============================================================
@@ -726,11 +797,20 @@
     });
 
     // Ministries
+    var ministries = DEFAULT_MINISTRIES.concat((L.ministries || []).filter(function(m) { return m; }));
+    ministries = Array.from(new Set(ministries));
+
     if (ministrySelect) {
-      (L.ministries || []).forEach(function(m) {
-        if (m) {
-          ministrySelect.innerHTML += '<option value="' + m + '">' + m + '</option>';
-        }
+      ministries.forEach(function(m) {
+        ministrySelect.innerHTML += '<option value="' + m + '">' + m + '</option>';
+      });
+    }
+
+    var ministryHeadSelect = document.getElementById("ministryHeadMinistry");
+    if (ministryHeadSelect) {
+      ministryHeadSelect.innerHTML = '<option value="">(select)</option>';
+      ministries.forEach(function(m) {
+        ministryHeadSelect.innerHTML += '<option value="' + m + '">' + m + '</option>';
       });
     }
   }
@@ -920,14 +1000,17 @@
     var info = { label: status, cssClass: "pending", description: "" };
     var ministryVerified = pv && String(pv.ministry_verified || "").toUpperCase() === "YES";
     var ministryBypassed = pv && String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
+    var ministryRequired = pv && String(pv.ministry || "").trim() !== "";
 
     if (status === "PENDING") { 
       info = { label: "Pending Finance Admin Review", cssClass: "pending", description: "Awaiting Finance Admin to review this PV" };
     } else if (status === "REVIEWED") { 
-      if (ministryVerified) {
+      if (ministryRequired && ministryVerified) {
         info = { label: "Ministry Verified", cssClass: "ministry-verified", description: "Ministry Head verified. Awaiting Signatory approval." };
-      } else if (ministryBypassed) {
+      } else if (ministryRequired && ministryBypassed) {
         info = { label: "Verification Bypassed", cssClass: "ministry-verified", description: "Ministry verification bypassed. Awaiting Signatory approval." };
+      } else if (!ministryRequired) {
+        info = { label: "Finance Admin Reviewed", cssClass: "reviewed", description: "Finance Admin reviewed. Awaiting Signatory approval." };
       } else {
         info = { label: "Finance Admin Reviewed", cssClass: "reviewed", description: "Finance Admin has reviewed. Awaiting Ministry Head verification." };
       }
@@ -951,6 +1034,31 @@
     }
     
     return info;
+  }
+
+  function updatePvStatusBadge(status) {
+    var badge = document.getElementById("pvStatusBadge");
+    if (!badge) return;
+    var normalized = String(status || "").toUpperCase();
+    var label = "PENDING";
+    var cls = "pending";
+
+    if (normalized === "REVIEWED") {
+      label = "REVIEWED";
+      cls = "reviewed";
+    } else if (["MINISTRY_VERIFIED", "PENDING_MINISTRY", "PENDING_SIGNATORY"].includes(normalized)) {
+      label = "VERIFIED";
+      cls = "verified";
+    } else if (normalized === "APPROVED") {
+      label = "APPROVED";
+      cls = "approved";
+    } else if (normalized === "REJECTED" || normalized === "REJECTED_HEAD") {
+      label = "REJECTED";
+      cls = "rejected";
+    }
+
+    badge.textContent = label;
+    badge.className = "status-badge " + cls;
   }
 
   /* ============================================================
@@ -1134,6 +1242,7 @@
     document.getElementById("applicantName").value = "";
     document.getElementById("purpose").value = "";
     if (document.getElementById("ministrySelect")) document.getElementById("ministrySelect").value = "";
+    updatePvStatusBadge("PENDING");
   }
 
   /* ============================================================
@@ -1481,7 +1590,9 @@
           var approvalsText = pv.approvals_count || "0/2";
           var approvalDetails = pv.approval_details || "";
           var alreadyApproved = pv.currentUserApproved;
-          var ministryReady = String(pv.ministry_verified || "").toUpperCase() === "YES" ||
+          var ministryRequired = String(pv.ministry || "").trim() !== "";
+          var ministryReady = !ministryRequired ||
+            String(pv.ministry_verified || "").toUpperCase() === "YES" ||
             String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
           
           // Show approval details (who approved) with revoke buttons
@@ -1845,6 +1956,9 @@
       }
       
       renderPvPreview(res.pv, res.signatures);
+    }, function(err) {
+      var message = (err && err.message) ? err.message : "Unable to load PV preview.";
+      document.getElementById("pvPreviewContent").innerHTML = '<div style="color:red;padding:20px;">Error loading PV: ' + message + '</div>';
     });
   }
 
@@ -1860,6 +1974,7 @@
   }
 
   function renderPvPreview(pv, signatures) {
+    signatures = signatures || {};
     var statusInfo = getStatusDisplayInfo(pv.status, pv.approvals_count, pv);
     var statusEl = document.getElementById("pvPreviewStatus");
     statusEl.textContent = statusInfo.label;
@@ -1898,28 +2013,34 @@
     paymentDetailsHtml += '<th style="border:1px solid #000;padding:6px;font-size:10px;background:#f5f5f5;text-align:right;">Amount (RM)</th></tr>';
     paymentValuesHtml += '<td style="border:1px solid #000;padding:6px;font-size:10px;text-align:right;">' + total.toFixed(2) + '</td></tr>';
 
-    // Set bank payout
-    var setBankHtml = "";
-    if (pv.payer_bank_name) {
-      setBankHtml = '<span style="font-size:11px;font-weight:bold;background:#fffde7;padding:4px 8px;border:1px solid #fdd835;">' + pv.payer_bank_name + '</span>';
+    // Pay from account display
+    var payFromValue = pv.payer_bank_name ? pv.payer_bank_name : "NOT SPECIFIED";
+    if (pv.payer_bank_name && pv.payer_account_code) {
+      payFromValue += " - " + pv.payer_account_code;
     }
+    var payFromHtml = '<div style="text-align:center;min-width:170px;">' +
+      '<div style="border:2px solid #000;padding:6px 10px;font-size:11px;font-weight:bold;">PAY FROM ACCOUNT</div>' +
+      '<div style="border:1px solid #000;border-top:none;padding:6px 10px;font-size:10px;">' + payFromValue + '</div>' +
+      '</div>';
 
     // Ministry Head verification section
     var ministryHeadHtml = "";
     var ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
     var ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
-    var deptHeadName = pv.dept_head_name || pv.ministry_head_name || "";
+    var ministryRequired = String(pv.ministry || "").trim() !== "";
     var ministryName = pv.ministry || pv.dept || "";
     var ministryStatus = ministryVerified ? "Verified" : (ministryBypassed ? "Bypassed" : "Pending");
+    var ministrySig = signatures.MINISTRY_HEAD || signatures.DEPT_HEAD || {};
+    var ministryVerifierLabel = ministryVerified ? (pv.ministry_verified_by || ministrySig.name || "Ministry Head") : (ministryBypassed ? "BYPASSED" : "Pending");
     
     ministryHeadHtml = '<div style="margin-top:20px;padding:15px;border:1px solid #ddd;border-radius:8px;">' +
-      '<div style="font-weight:bold;font-size:11px;margin-bottom:10px;border-bottom:1px solid #ccc;padding-bottom:5px;">MINISTRY VERIFICATION: ' + ministryStatus.toUpperCase() + '</div>' +
+      '<div style="font-weight:bold;font-size:11px;margin-bottom:10px;border-bottom:1px solid #ccc;padding-bottom:5px;">VERIFIED BY (MINISTRY HEAD): ' + ministryStatus.toUpperCase() + '</div>' +
       '<div style="display:flex;gap:40px;align-items:center;">' +
       '<div style="text-align:center;width:180px;">' +
       '<div style="height:50px;display:flex;align-items:flex-end;justify-content:center;">';
     
-    if (ministryVerified && signatures && signatures.DEPT_HEAD && signatures.DEPT_HEAD.file_url) {
-      ministryHeadHtml += '<img src="' + signatures.DEPT_HEAD.file_url + '" style="max-height:45px;max-width:150px;">';
+    if (ministryVerified && ministrySig.file_url) {
+      ministryHeadHtml += '<img src="' + ministrySig.file_url + '" style="max-height:45px;max-width:150px;">';
     } else if (ministryVerified || ministryBypassed) {
       ministryHeadHtml += '<span style="color:#16a34a;font-size:20px;"><i class="fa-solid fa-check-circle"></i></span>';
     } else {
@@ -1928,8 +2049,8 @@
     
     ministryHeadHtml += '</div>' +
       '<div style="border-top:1px solid #000;margin-top:5px;padding-top:5px;">' +
-      '<div style="font-size:10px;">' + (deptHeadName || 'Ministry Head') + '</div>' +
-      '<div style="font-size:9px;color:#666;">(' + ministryName + ')</div>' +
+      '<div style="font-size:10px;">' + ministryVerifierLabel + '</div>' +
+      '<div style="font-size:9px;color:#666;">(' + (ministryRequired ? ministryName : "No ministry selected") + ')</div>' +
       '</div></div>' +
       '<div style="font-size:10px;color:#666;">' +
       (ministryVerified && pv.ministry_verified_by ? 'By: ' + pv.ministry_verified_by + '<br>' : '') +
@@ -1987,7 +2108,7 @@
       // Title row with Set Bank
       '<div style="display:flex;justify-content:space-between;align-items:center;margin:15px 0;">' +
       '<span style="font-size:16px;font-weight:bold;text-decoration:underline;">PAYMENT VOUCHER</span>' +
-      setBankHtml +
+      payFromHtml +
       '</div>' +
       
       // Pay To row
@@ -2122,6 +2243,7 @@
       // Populate form fields
       document.getElementById("pvNumberPreview").textContent = pv.pv_no + " (editing)";
       document.getElementById("pvDate").value = pv.date ? pv.date.substring(0, 10) : "";
+      updatePvStatusBadge(pv.status || "PENDING");
       document.getElementById("applicantName").value = pv.applicant_name || "";
       document.getElementById("deptSelect").value = pv.dept || "";
       if (document.getElementById("ministrySelect")) {
@@ -2997,16 +3119,152 @@
     });
   }
 
+  /* ============================================================
+     MINISTRY VERIFIER MANAGEMENT
+     ============================================================ */
+  function refreshMinistryHeadCardVisibility() {
+    var card = document.getElementById("ministryHeadAdminCard");
+    if (card) card.style.display = canManageMinistryHeads() ? "block" : "none";
+  }
+
+  function showMinistryHeadForm() {
+    document.getElementById("ministryHeadForm").style.display = "block";
+    document.getElementById("ministryHeadBtnWrap").style.display = "none";
+  }
+
+  function hideMinistryHeadForm() {
+    document.getElementById("ministryHeadForm").style.display = "none";
+    document.getElementById("ministryHeadBtnWrap").style.display = canManageMinistryHeads() ? "block" : "none";
+    document.getElementById("ministryHeadMinistry").value = "";
+    document.getElementById("ministryHeadName").value = "";
+    document.getElementById("ministryHeadEmail").value = "";
+    document.getElementById("ministryHeadSupplementary").checked = false;
+    LCM.editingMinistryHeadRow = null;
+  }
+
+  function loadMinistryHeadAssignments() {
+    var body = document.getElementById("ministryHeadListBody");
+    if (!body) return;
+    var actionsHeader = document.getElementById("ministryHeadActionsHeader");
+
+    if (!canManageMinistryHeads()) {
+      body.innerHTML = '<tr><td colspan="5" class="muted">Not available for your role.</td></tr>';
+      if (actionsHeader) actionsHeader.style.display = "none";
+      return;
+    }
+
+    body.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+    runServer("listMinistryHeadAssignments", undefined, function(res) {
+      if (!res || !res.ok) {
+        body.innerHTML = '<tr><td colspan="5" class="muted">' + ((res && res.error) || "Unable to load.") + '</td></tr>';
+        return;
+      }
+
+      var rows = res.assignments || [];
+      if (actionsHeader) actionsHeader.style.display = "table-cell";
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="5" class="muted">No assignments found.</td></tr>';
+      } else {
+        var canManage = canManageMinistryHeads();
+        document.getElementById("ministryHeadActionsHeader").style.display = canManage ? "table-cell" : "none";
+        body.innerHTML = "";
+        rows.forEach(function(r) {
+          var actions = "";
+          if (canManage) {
+            actions = '<button class="btn small secondary" type="button" onclick="editMinistryHeadAssignment(' + r.rowIndex + ')"><i class="fa-solid fa-pen"></i> Edit</button>' +
+              ' <button class="btn small danger" type="button" onclick="deleteMinistryHeadAssignment(' + r.rowIndex + ')"><i class="fa-solid fa-trash"></i></button>';
+          }
+          body.innerHTML += '<tr>' +
+            '<td>' + (r.ministry || "") + '</td>' +
+            '<td>' + (r.head_name || "") + '</td>' +
+            '<td>' + (r.head_email || "") + '</td>' +
+            '<td>' + (r.is_supplementary ? "Yes" : "No") + '</td>' +
+            '<td>' + actions + '</td>' +
+            '</tr>';
+        });
+      }
+
+      document.getElementById("ministryHeadBtnWrap").style.display = canManageMinistryHeads() ? "block" : "none";
+      hideMinistryHeadForm();
+    });
+  }
+
+  function editMinistryHeadAssignment(rowIndex) {
+    runServer("listMinistryHeadAssignments", undefined, function(res) {
+      if (!res || !res.ok) {
+        toastErr((res && res.error) || "Unable to load assignment.");
+        return;
+      }
+      var match = (res.assignments || []).find(function(r) { return r.rowIndex === rowIndex; });
+      if (!match) {
+        toastErr("Assignment not found.");
+        return;
+      }
+      document.getElementById("ministryHeadMinistry").value = match.ministry || "";
+      document.getElementById("ministryHeadName").value = match.head_name || "";
+      document.getElementById("ministryHeadEmail").value = match.head_email || "";
+      document.getElementById("ministryHeadSupplementary").checked = !!match.is_supplementary;
+      LCM.editingMinistryHeadRow = rowIndex;
+      showMinistryHeadForm();
+    });
+  }
+
+  function saveMinistryHeadAssignment() {
+    var ministry = document.getElementById("ministryHeadMinistry").value || "";
+    var name = document.getElementById("ministryHeadName").value.trim();
+    var email = document.getElementById("ministryHeadEmail").value.trim();
+    var isSupplementary = document.getElementById("ministryHeadSupplementary").checked;
+
+    if (!ministry) {
+      toastWarn("Select a ministry/department.");
+      return;
+    }
+    if (!email) {
+      toastWarn("Enter verifier email.");
+      return;
+    }
+
+    var payload = {
+      rowIndex: LCM.editingMinistryHeadRow,
+      ministry: ministry,
+      head_name: name,
+      head_email: email,
+      is_supplementary: isSupplementary
+    };
+
+    runServer("saveMinistryHeadAssignment", payload, function(res) {
+      if (res && res.ok) {
+        toastOk("Assignment saved.");
+        hideMinistryHeadForm();
+        loadMinistryHeadAssignments();
+      } else {
+        toastErr((res && res.error) || "Save failed.");
+      }
+    });
+  }
+
+  function deleteMinistryHeadAssignment(rowIndex) {
+    if (!confirm("Remove this verifier assignment?")) return;
+    runServer("deleteMinistryHeadAssignment", rowIndex, function(res) {
+      if (res && res.ok) {
+        toastOk("Assignment removed.");
+        loadMinistryHeadAssignments();
+      } else {
+        toastErr((res && res.error) || "Delete failed.");
+      }
+    });
+  }
+
   function refreshSigCardVisibility() {
     var card = document.getElementById("signatureAdminCard");
-    if (card) card.style.display = canShare() ? "block" : "none";
+    if (card) card.style.display = canManageSignatures() ? "block" : "none";
   }
 
   function refreshStoredSignatures() {
     var box = document.getElementById("sigStoredList");
     if (!box) return;
 
-    if (!canShare()) {
+    if (!canManageSignatures()) {
       box.textContent = "Not available for your role.";
       return;
     }
@@ -3022,10 +3280,11 @@
       var html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">';
       Object.keys(sigs).forEach(function(role) {
         var s = sigs[role] || {};
+        var label = role.replace(/_/g, " ");
         html += '<div style="border:1px solid #ddd;border-radius:10px;background:#fff;padding:8px;">' +
-          '<div style="font-weight:700;font-size:12px;">' + role + '</div>' +
+          '<div style="font-weight:700;font-size:12px;">' + label + '</div>' +
           '<div class="muted">' + (s.name || "(no name)") + '</div>' +
-          (s.url ? '<img src="' + s.url + '" style="max-height:40px;margin-top:6px;">' : '') +
+          (s.file_url ? '<img src="' + s.file_url + '" style="max-height:40px;margin-top:6px;">' : '') +
           '</div>';
       });
       html += '</div>';
@@ -3036,7 +3295,7 @@
   }
 
   function saveSignature() {
-    if (!canShare()) { toastWarn("Not authorized."); return; }
+    if (!canManageSignatures()) { toastWarn("Not authorized."); return; }
 
     var role = document.getElementById("sigRoleSelect").value;
     var name = document.getElementById("sigDisplayName").value || "";
@@ -3075,6 +3334,7 @@
       if (roles.isBishop) badges.push("Bishop");
       if (roles.isTreasurer) badges.push("Treasurer");
       if (roles.isSecretary) badges.push("Secretary");
+      if (roles.isMinistryHead) badges.push("Ministry Head");
 
       document.getElementById("sidebarRoles").textContent = badges.length ? badges.join(" • ") : "Standard user";
 
@@ -3093,6 +3353,7 @@
       }
 
       refreshSigCardVisibility();
+      refreshMinistryHeadCardVisibility();
     });
   }
 
@@ -3145,6 +3406,18 @@
     document.getElementById("btnCleanupPVs").addEventListener("click", cleanupInvalidPVs);
     document.getElementById("btnSaveSignature").addEventListener("click", saveSignature);
     document.getElementById("btnRefreshSignatures").addEventListener("click", refreshStoredSignatures);
+    if (document.getElementById("btnRefreshMinistryHeads")) {
+      document.getElementById("btnRefreshMinistryHeads").addEventListener("click", loadMinistryHeadAssignments);
+    }
+    if (document.getElementById("btnShowMinistryHeadForm")) {
+      document.getElementById("btnShowMinistryHeadForm").addEventListener("click", showMinistryHeadForm);
+    }
+    if (document.getElementById("btnSaveMinistryHead")) {
+      document.getElementById("btnSaveMinistryHead").addEventListener("click", saveMinistryHeadAssignment);
+    }
+    if (document.getElementById("btnCancelMinistryHead")) {
+      document.getElementById("btnCancelMinistryHead").addEventListener("click", hideMinistryHeadForm);
+    }
     
     // Track status
     if (document.getElementById("btnTrackStatus")) {
@@ -3181,11 +3454,24 @@
     }
   }
 
+  function removeDuplicateLayoutWrappers() {
+    var sidebars = document.querySelectorAll(".sidebar");
+    sidebars.forEach(function(node, idx) {
+      if (idx > 0 && node.parentNode) node.parentNode.removeChild(node);
+    });
+    var mains = document.querySelectorAll("main.main");
+    mains.forEach(function(node, idx) {
+      if (idx > 0 && node.parentNode) node.parentNode.removeChild(node);
+    });
+  }
+
   function initApp() {
+    removeDuplicateLayoutWrappers();
     // Set today's date
     var today = new Date().toISOString().slice(0, 10);
     document.getElementById("pvDate").value = today;
     document.getElementById("recNextDate").value = today;
+    updatePvStatusBadge("PENDING");
 
     setupNav();
     wireUiEvents();
