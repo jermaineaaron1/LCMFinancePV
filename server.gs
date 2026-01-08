@@ -20,6 +20,15 @@ const SHEET_SHARES     = "Shares";
 const SHEET_LOGS       = "Logs";
 const SHEET_ROLES      = "Roles";
 const SHEET_MINISTRY_HEADS = "MinistryHeads";
+const DEFAULT_DEPARTMENTS = [
+  "LCM HQ Office",
+  "LCM Mission",
+  "LCM Education",
+  "LCM YAY",
+  "Property",
+  "Worship",
+  "Others"
+];
 
 /* =========================
    ROLE EMAIL MAPPINGS
@@ -193,7 +202,42 @@ function ensurePvColumns_() {
 }
 
 function ensureMinistryHeadsSheet_() {
-  return ensureSheet_(SHEET_MINISTRY_HEADS, ["Ministry", "Head_Email", "Head_Name"]);
+  const sh = ensureSheet_(SHEET_MINISTRY_HEADS, [
+    "Department",
+    "Primary_Head_Name",
+    "Primary_Head_Email",
+    "Secondary_Head_Name",
+    "Secondary_Head_Email",
+    "Created_At",
+    "Updated_At"
+  ]);
+  const headers = getHeaders_(sh);
+  const required = [
+    "Department",
+    "Primary_Head_Name",
+    "Primary_Head_Email",
+    "Secondary_Head_Name",
+    "Secondary_Head_Email",
+    "Created_At",
+    "Updated_At"
+  ];
+  const missing = required.filter(h => !headers.includes(h));
+  if (missing.length) {
+    sh.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
+  }
+  return sh;
+}
+
+function getCanonicalDepartments_() {
+  const ss = ss_();
+  const deptSh = ss.getSheetByName("Departments");
+  let departments = [];
+  if (deptSh) {
+    const deptRows = rows_(deptSh);
+    departments = deptRows.map(r => (r.Dept_Name || r.dept_name || r.name || "")).filter(Boolean);
+  }
+  const combined = DEFAULT_DEPARTMENTS.concat(departments);
+  return Array.from(new Set(combined));
 }
 
 /* =========================
@@ -238,7 +282,9 @@ function getUserContext() {
       isTreasurer: testRole === "TREASURER",
       isSecretary: testRole === "SECRETARY",
       isSignatory: ["BISHOP", "TREASURER", "SECRETARY"].includes(testRole),
-      signatoryRole: testRole
+      signatoryRole: testRole,
+      isMinistryHead: false,
+      ministries: []
     };
   }
 
@@ -260,6 +306,8 @@ function getUserContext() {
   else if (isTreasurer) signatoryRole = "TREASURER";
   else if (isSecretary) signatoryRole = "SECRETARY";
 
+  const ministryAssignments = email ? getDepartmentsForVerifier_(email) : [];
+
   return {
     email: email,
     testRole: "",
@@ -268,7 +316,9 @@ function getUserContext() {
     isTreasurer: isTreasurer,
     isSecretary: isSecretary,
     isSignatory: isBishop || isTreasurer || isSecretary,
-    signatoryRole: signatoryRole
+    signatoryRole: signatoryRole,
+    isMinistryHead: ministryAssignments.length > 0,
+    ministries: ministryAssignments
   };
 }
 
@@ -327,6 +377,9 @@ function getLookups() {
       head_email: r.Head_Email || r.head_email || ""
     })).filter(d => d.name);
   }
+  if (!departments.length) {
+    departments = getCanonicalDepartments_().map(name => ({ name: name, head_name: "", head_email: "" }));
+  }
 
   // From Lookups sheet (for projects, banks, etc.)
   let look = [];
@@ -353,12 +406,14 @@ function getLookups() {
   const pvSh = ss.getSheetByName(SHEET_PVS);
   if (pvSh) pvs = rows_(pvSh);
 
+  const departmentsList = getCanonicalDepartments_();
+
   return {
     departments: departments,
-    departmentNames: departments.map(d => d.name),
+    departmentNames: departmentsList,
     projects: projects,
     banks: look.filter(r => r.category === "banks").map(r => r.value),
-    ministries: look.filter(r => r.category === "ministry").map(r => r.value),
+    ministries: [],
     payees: payees.map(p => ({ 
       name: p.name || "", 
       bank_name: p.bank_name || "", 
@@ -796,9 +851,10 @@ function trackPVStatus(identifier) {
 
     const ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
     const ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
-    const ministryReady = ministryVerified || ministryBypassed;
+    const ministryRequired = String(pv.dept || "").trim() !== "";
+    const ministryReady = !ministryRequired || ministryVerified || ministryBypassed;
 
-    if (["REVIEWED", "APPROVED"].includes(status)) {
+    if (["REVIEWED", "APPROVED"].includes(status) && ministryRequired) {
       if (ministryVerified) {
         timeline.push({
           step: "Ministry Verified",
@@ -952,14 +1008,138 @@ function searchPVs(query) {
 /* =========================
    DEPARTMENT HEAD VERIFICATION
    ========================= */
-function getMinistriesForHead_(email) {
+function getDepartmentsForVerifier_(email) {
   const sh = ensureMinistryHeadsSheet_();
   const heads = rows_(sh);
   const key = String(email || "").toLowerCase().trim();
   return heads
-    .filter(r => String(r.Head_Email || r.head_email || "").toLowerCase().trim() === key)
-    .map(r => r.Ministry || r.ministry || "")
+    .filter(r => {
+      const primary = String(r.Primary_Head_Email || r.primary_head_email || r.Head_Email || r.head_email || "").toLowerCase().trim();
+      const secondary = String(r.Secondary_Head_Email || r.secondary_head_email || "").toLowerCase().trim();
+      return primary === key || secondary === key;
+    })
+    .map(r => r.Department || r.department || r.Ministry || r.ministry || "")
     .filter(Boolean);
+}
+
+function listMinistryHeadAssignments() {
+  try {
+    const ctx = getUserContext();
+    if (!ctx.isFinanceAdmin && !ctx.isSignatory) {
+      return { ok: false, error: "Not authorized" };
+    }
+
+    const sh = ensureMinistryHeadsSheet_();
+    const data = sh.getDataRange().getValues();
+    if (data.length <= 1) {
+      const empty = getCanonicalDepartments_().map((dept) => ({
+        rowIndex: 0,
+        department: dept,
+        primary_name: "",
+        primary_email: "",
+        secondary_name: "",
+        secondary_email: ""
+      }));
+      return { ok: true, assignments: empty };
+    }
+    const headers = data.shift();
+
+    const idx = {
+      Department: headers.indexOf("Department"),
+      Legacy_Department: headers.indexOf("Ministry"),
+      Primary_Name: headers.indexOf("Primary_Head_Name"),
+      Primary_Email: headers.indexOf("Primary_Head_Email"),
+      Secondary_Name: headers.indexOf("Secondary_Head_Name"),
+      Secondary_Email: headers.indexOf("Secondary_Head_Email"),
+      Legacy_Name: headers.indexOf("Head_Name"),
+      Legacy_Email: headers.indexOf("Head_Email")
+    };
+
+    const rows = data.map((row, i) => ({
+      rowIndex: i + 2,
+      department: idx.Department >= 0 ? row[idx.Department] : (idx.Legacy_Department >= 0 ? row[idx.Legacy_Department] : ""),
+      primary_name: idx.Primary_Name >= 0 ? row[idx.Primary_Name] : (idx.Legacy_Name >= 0 ? row[idx.Legacy_Name] : ""),
+      primary_email: idx.Primary_Email >= 0 ? row[idx.Primary_Email] : (idx.Legacy_Email >= 0 ? row[idx.Legacy_Email] : ""),
+      secondary_name: idx.Secondary_Name >= 0 ? row[idx.Secondary_Name] : "",
+      secondary_email: idx.Secondary_Email >= 0 ? row[idx.Secondary_Email] : ""
+    })).filter(r => r.department);
+
+    const deptSet = new Set(rows.map(r => r.department));
+    getCanonicalDepartments_().forEach((dept) => {
+      if (!deptSet.has(dept)) {
+        rows.push({
+          rowIndex: 0,
+          department: dept,
+          primary_name: "",
+          primary_email: "",
+          secondary_name: "",
+          secondary_email: ""
+        });
+      }
+    });
+
+    return { ok: true, assignments: rows };
+  } catch (e) {
+    console.error("listMinistryHeadAssignments error:", e);
+    return { ok: false, error: e.message };
+  }
+}
+
+function saveMinistryHeadAssignment(data) {
+  try {
+    const ctx = getUserContext();
+    if (!ctx.isFinanceAdmin && !ctx.isSignatory) {
+      return { ok: false, error: "Not authorized" };
+    }
+
+    const sh = ensureMinistryHeadsSheet_();
+    const headers = getHeaders_(sh);
+    const rowIndex = data && data.rowIndex ? Number(data.rowIndex) : 0;
+    const updates = {
+      Department: data.department || "",
+      Primary_Head_Name: data.primary_name || "",
+      Primary_Head_Email: data.primary_email || "",
+      Secondary_Head_Name: data.secondary_name || "",
+      Secondary_Head_Email: data.secondary_email || "",
+      Updated_At: now_()
+    };
+
+    if (rowIndex && rowIndex > 1) {
+      const idx = rowIndex - 2;
+      update_(sh, idx, updates);
+    } else {
+      const existing = rows_(sh).find(r => String(r.Department || "").trim() === updates.Department);
+      if (existing) {
+        updateRow_(sh, "Department", updates.Department, updates);
+      } else {
+        updates.Created_At = now_();
+        append_(sh, updates);
+      }
+    }
+
+    return { ok: true };
+  } catch (e) {
+    console.error("saveMinistryHeadAssignment error:", e);
+    return { ok: false, error: e.message };
+  }
+}
+
+function deleteMinistryHeadAssignment(rowIndex) {
+  try {
+    const ctx = getUserContext();
+    if (!ctx.isFinanceAdmin && !ctx.isSignatory) {
+      return { ok: false, error: "Not authorized" };
+    }
+
+    const sh = ensureMinistryHeadsSheet_();
+    const idx = Number(rowIndex);
+    if (!idx || idx < 2) return { ok: false, error: "Invalid row" };
+    sh.deleteRow(idx);
+    return { ok: true };
+  } catch (e) {
+    console.error("deleteMinistryHeadAssignment error:", e);
+    return { ok: false, error: e.message };
+  }
 }
 
 function deptHeadVerifyPV(pvNo, action, comment) {
@@ -1074,18 +1254,15 @@ function listPVsForMinistryHead() {
   try {
     ensurePvColumns_();
     const ctx = getUserContext();
-    const ministries = getMinistriesForHead_(ctx.email);
-
-    if (!ministries.length && !ctx.isFinanceAdmin) {
-      return { ok: false, error: "Not assigned as ministry head" };
+    const departments = getDepartmentsForVerifier_(ctx.email);
+    if (!departments.length) {
+      return { ok: false, error: "You are not assigned as a ministry verifier for any department." };
     }
 
     const sh = getSheet_(SHEET_PVS);
     let pvs = rows_(sh);
 
-    if (!ctx.isFinanceAdmin) {
-      pvs = pvs.filter(p => ministries.includes(p.ministry));
-    }
+    pvs = pvs.filter(p => departments.includes(p.dept || ""));
 
     const pending = pvs.filter(p => {
       const verified = String(p.ministry_verified || "").toUpperCase() === "YES";
@@ -1102,7 +1279,6 @@ function listPVsForMinistryHead() {
       date: pv.date ? String(pv.date) : "",
       applicant_name: pv.applicant_name || "",
       applicant_email: pv.applicant_email || "",
-      ministry: pv.ministry || "",
       dept: pv.dept || "",
       payee_name: pv.payee_name || "",
       amount: pv.amount || 0,
@@ -1136,12 +1312,10 @@ function ministryHeadVerifyPV(pvNo, action, comment) {
 
     if (!pv) return { ok: false, error: "PV not found" };
 
-    const ministries = getMinistriesForHead_(ctx.email);
     const userEmail = String(ctx.email || "").toLowerCase().trim();
-    const ministry = pv.ministry || "";
-    const canVerify = ctx.isFinanceAdmin || ministries.includes(ministry);
-
-    if (!canVerify) {
+    const departments = getDepartmentsForVerifier_(ctx.email);
+    const dept = pv.dept || "";
+    if (!departments.includes(dept)) {
       return { ok: false, error: "You are not the ministry head for this PV" };
     }
 
@@ -1468,6 +1642,18 @@ function adminSendToSignatories(pvNo, comment, visibility, bankAccount) {
 
     // Update status to REVIEWED
     const sh = getSheet_(SHEET_PVS);
+    const allPvs = rows_(sh);
+    const pv = allPvs.find(r => r.pv_no === pvNo);
+    if (!pv) return { ok: false, error: "PV not found" };
+
+    const ministryRequired = String(pv.dept || "").trim() !== "";
+    if (!ministryRequired) {
+      updateData.ministry_verify_bypassed = "YES";
+      updateData.ministry_bypass_by = ctx.email;
+      updateData.ministry_bypass_at = now_();
+      updateData.ministry_bypass_reason = "No ministry selected";
+    }
+
     const updated = updateRow_(sh, "pv_no", pvNo, updateData);
 
     if (!updated) return { ok: false, error: "PV not found" };
@@ -1715,6 +1901,7 @@ function updatePV(d) {
       date: d.pvDate || existing.date,
       applicant_name: d.applicant_name || existing.applicant_name,
       dept: d.dept || existing.dept,
+      ministry: d.dept || existing.dept,
       project: d.project || existing.project,
       payee_name: d.payee_name || existing.payee_name,
       payment_method: d.payment_method || existing.payment_method,
@@ -1828,7 +2015,8 @@ function signatoryActOnPV(pvNo, action, comment, visibility) {
     }
     const ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
     const ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
-    if (!ministryVerified && !ministryBypassed) {
+    const ministryRequired = String(pv.dept || "").trim() !== "";
+    if (ministryRequired && !ministryVerified && !ministryBypassed) {
       return { ok: false, error: "Ministry verification is required before signatory approval" };
     }
 
@@ -2070,6 +2258,11 @@ function buildSignedPvHtml_(pv, signatures) {
     setBankDisplay = pv.payer_bank_name;
     if (pv.payer_account_code) setBankDisplay += " - " + pv.payer_account_code;
   }
+  const payFromValue = setBankDisplay || "(Not set)";
+  const payFromBoxHtml = '<div style="text-align:center;">' +
+    '<div style="border:2px solid #000;padding:6px 12px;font-size:12px;font-weight:bold;">PAY FROM ACCOUNT</div>' +
+    '<div style="border:1px solid #000;border-top:none;padding:6px 12px;font-size:10px;">' + payFromValue + '</div>' +
+    '</div>';
 
   // Department head verification section
   let deptHeadHtml = "";
@@ -2096,22 +2289,31 @@ function buildSignedPvHtml_(pv, signatures) {
 
   const ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
   const ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
-  let ministryHtml = "";
-  if (ministryVerified || ministryBypassed) {
-    const ministryStatus = ministryVerified ? "VERIFIED" : "BYPASSED";
-    const ministryBy = ministryVerified ? (pv.ministry_verified_by || "") : (pv.ministry_bypass_by || "");
-    const ministryAt = ministryVerified ? (pv.ministry_verified_at || "") : (pv.ministry_bypass_at || "");
-    const ministryComment = ministryVerified ? (pv.ministry_verified_comment || "") : (pv.ministry_bypass_reason || "");
+  const ministryRequired = String(pv.dept || "").trim() !== "";
+  const ministryStatus = ministryVerified ? "VERIFIED" : (ministryBypassed ? "BYPASSED" : "PENDING");
+  const ministryBy = ministryVerified ? (pv.ministry_verified_by || "") : (ministryBypassed ? (pv.ministry_bypass_by || "") : "");
+  const ministryAt = ministryVerified ? (pv.ministry_verified_at || "") : (ministryBypassed ? (pv.ministry_bypass_at || "") : "");
+  const ministryComment = ministryVerified ? (pv.ministry_verified_comment || "") : (ministryBypassed ? (pv.ministry_bypass_reason || "") : "");
+  const ministrySigKey = pv.ministry_verified_by ? "MINISTRY_HEAD|" + pv.ministry_verified_by : "MINISTRY_HEAD";
+  const ministrySig = signatures[ministrySigKey] || signatures["MINISTRY_HEAD"] || signatures["DEPT_HEAD"] || {};
+  const ministryVerifierLabel = ministryVerified ? (ministryBy || ministrySig.name || "Ministry Head") : (ministryBypassed ? "BYPASSED" : "PENDING");
 
-    ministryHtml = '<div style="margin-top:25px;">' +
-      '<div style="font-weight:bold;font-size:11px;margin-bottom:8px;border-bottom:1px solid #000;padding-bottom:5px;">MINISTRY VERIFICATION (' + ministryStatus + ')</div>' +
-      '<div style="font-size:10px;line-height:1.4;">' +
-      '<div><strong>Ministry:</strong> ' + (pv.ministry || pv.dept || "") + '</div>' +
-      (ministryBy ? '<div><strong>By:</strong> ' + ministryBy + '</div>' : '') +
-      (ministryAt ? '<div><strong>At:</strong> ' + formatDateDDMMYYYY(ministryAt) + '</div>' : '') +
-      (ministryComment ? '<div><strong>Comment:</strong> ' + ministryComment + '</div>' : '') +
-      '</div></div>';
-  }
+  const ministryHtml = '<div style="margin-top:25px;">' +
+    '<div style="font-weight:bold;font-size:11px;margin-bottom:8px;border-bottom:1px solid #000;padding-bottom:5px;">VERIFIED BY (MINISTRY HEAD) - ' + ministryStatus + '</div>' +
+    '<div style="display:flex;align-items:flex-start;gap:60px;">' +
+    '<div style="text-align:center;width:200px;">' +
+    '<div style="height:55px;display:flex;align-items:flex-end;justify-content:center;">' +
+    (ministryVerified && ministrySig.file_url ? '<img src="' + ministrySig.file_url + '" style="max-height:50px;max-width:150px;">' : (ministryVerified || ministryBypassed ? '<span style="font-size:18px;color:#16a34a;">✓</span>' : '<span style="color:#999;font-size:10px;">Pending</span>')) +
+    '</div>' +
+    '<div style="border-top:1px solid #000;margin-top:5px;padding-top:5px;">' +
+    '<div style="font-size:11px;">' + ministryVerifierLabel + '</div>' +
+    '<div style="font-size:9px;color:#666;">(' + (ministryRequired ? (pv.dept || "") : "No department selected") + ')</div>' +
+    '</div></div>' +
+    '<div style="font-size:10px;line-height:1.4;">' +
+    (ministryBy ? '<div><strong>By:</strong> ' + ministryBy + '</div>' : '') +
+    (ministryAt ? '<div><strong>At:</strong> ' + formatDateDDMMYYYY(ministryAt) + '</div>' : '') +
+    (ministryComment ? '<div><strong>Comment:</strong> ' + ministryComment + '</div>' : '') +
+    '</div></div></div>';
 
   // Build signatures - only the 2 signatories who approved
   let signaturesHtml = "";
@@ -2163,7 +2365,7 @@ function buildSignedPvHtml_(pv, signatures) {
     '<span style="font-size:18px;font-weight:bold;text-decoration:underline;">PAYMENT VOUCHER</span>' +
     '</td>' +
     '<td style="text-align:right;">' +
-    (setBankDisplay ? '<span style="font-size:11px;font-weight:bold;background:#fffde7;padding:5px 10px;border:1px solid #fdd835;">' + setBankDisplay + '</span>' : '') +
+    payFromBoxHtml +
     '</td></tr></table>' +
     
     // PAY TO and Voucher Info
@@ -2172,8 +2374,9 @@ function buildSignedPvHtml_(pv, signatures) {
     '<table style="width:100%;">' +
     '<tr><td style="font-size:11px;width:180px;vertical-align:top;"><strong>PAY TO:</strong></td>' +
     '<td style="font-size:12px;font-weight:bold;">' + (pv.payee_name || '').toUpperCase() + '</td></tr>' +
-    '<tr><td style="font-size:11px;vertical-align:top;"><strong>MINISTRY / DPT / ACCOUNT:</strong></td>' +
-    '<td style="font-size:11px;">' + (pv.ministry || pv.dept || '') + '</td></tr>' +
+    '<tr><td style="font-size:11px;vertical-align:top;"><strong>DEPARTMENT:</strong></td>' +
+    '<td style="font-size:11px;">' + (pv.dept || '') + '</td></tr>' +
+    (pv.project ? '<tr><td style="font-size:11px;vertical-align:top;"><strong>PROJECT:</strong></td><td style="font-size:11px;">' + pv.project + '</td></tr>' : '') +
     '</table></td>' +
     '<td style="text-align:right;font-size:11px;vertical-align:top;">' +
     'Voucher No : <strong>' + (pv.pv_no || '') + '</strong><br>' +
@@ -2245,20 +2448,8 @@ function getPVForPreview(pvNo) {
     if (!pv) return { ok: false, error: "PV not found" };
 
     // Get signatures
-    const sigSh = ss_().getSheetByName(SHEET_SIGNATURES);
-    const signatures = {};
-    if (sigSh) {
-      const sigRows = rows_(sigSh);
-      sigRows.forEach(r => {
-        if (r.role) {
-          signatures[r.role] = {
-            name: r.name || r.signatory_name || r.role,
-            file_url: r.file_url || "",
-            email: r.email || ""
-          };
-        }
-      });
-    }
+    const sigResult = getRoleSignatures();
+    const signatures = sigResult.signatures || {};
 
     // Add dept head signature if available
     if (pv.dept_head_name) {
@@ -2294,6 +2485,7 @@ function getPVForPreview(pvNo) {
         dept: pv.dept,
         payee_name: pv.payee_name,
         purpose: pv.purpose,
+        project: pv.project || "",
         amount: pv.amount,
         status: pv.status,
         payment_method: pv.payment_method,
@@ -2643,9 +2835,30 @@ function deleteFavourite(id) {
    SIGNATURES
    Columns in your sheet: email, role, file_id, file_url, updated_at
    ========================= */
+function ensureSignatureSheet_() {
+  const sh = ensureSheet_(SHEET_SIGNATURES, ["email", "role", "file_id", "file_url", "name", "updated_at"]);
+  const headers = getHeaders_(sh);
+  const required = ["email", "role", "file_id", "file_url", "name", "updated_at"];
+  const missing = required.filter(h => !headers.includes(h));
+  if (missing.length) {
+    sh.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
+  }
+  return sh;
+}
+
 function saveRoleSignature(role, name, dataUrl) {
   try {
     const ctx = getUserContext();
+    const allowed = {
+      FINANCE_ADMIN: ctx.isFinanceAdmin,
+      BISHOP: ctx.isBishop,
+      TREASURER: ctx.isTreasurer,
+      SECRETARY: ctx.isSecretary,
+      MINISTRY_HEAD: ctx.isMinistryHead
+    };
+    if (!allowed[role]) {
+      return { ok: false, error: "Not authorized for this role" };
+    }
 
     // Upload image
     const b64 = dataUrl.split(",")[1];
@@ -2657,7 +2870,7 @@ function saveRoleSignature(role, name, dataUrl) {
     const f = DriveApp.createFile(blob);
     f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-    const sh = getSheet_(SHEET_SIGNATURES);
+    const sh = ensureSignatureSheet_();
     const allRows = rows_(sh);
     const existingIdx = allRows.findIndex(r => r.role === role);
 
@@ -2666,9 +2879,13 @@ function saveRoleSignature(role, name, dataUrl) {
       const headers = getHeaders_(sh);
       const fileUrlIdx = headers.indexOf("file_url");
       const updatedIdx = headers.indexOf("updated_at");
+      const nameIdx = headers.indexOf("name");
+      const emailIdx = headers.indexOf("email");
 
       if (fileUrlIdx !== -1) sh.getRange(existingIdx + 2, fileUrlIdx + 1).setValue(f.getUrl());
       if (updatedIdx !== -1) sh.getRange(existingIdx + 2, updatedIdx + 1).setValue(now_());
+      if (nameIdx !== -1) sh.getRange(existingIdx + 2, nameIdx + 1).setValue(name || "");
+      if (emailIdx !== -1) sh.getRange(existingIdx + 2, emailIdx + 1).setValue(ctx.email || "");
     } else {
       // Add new
       append_(sh, {
@@ -2676,6 +2893,7 @@ function saveRoleSignature(role, name, dataUrl) {
         role: role,
         file_id: f.getId(),
         file_url: f.getUrl(),
+        name: name || "",
         updated_at: now_()
       });
     }
@@ -2694,18 +2912,25 @@ function getRoleSignatures() {
 
     const allRows = rows_(sh);
     const out = {};
+    const entries = [];
 
     allRows.forEach(r => {
       if (r.role) {
-        out[r.role] = { 
+        const record = { 
           name: r.name || r.signatory_name || r.role,  // Use name column if available
           file_url: r.file_url || "",
-          email: r.email || ""
+          email: r.email || "",
+          role: r.role
         };
+        out[r.role] = record;
+        if (record.email) {
+          out[r.role + "|" + record.email] = record;
+        }
+        entries.push(record);
       }
     });
 
-    return { signatures: out };
+    return { signatures: out, entries: entries };
   } catch (e) {
     console.error("getRoleSignatures error:", e);
     return { signatures: {} };
