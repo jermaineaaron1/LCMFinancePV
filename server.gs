@@ -34,6 +34,14 @@ const DEFAULT_DEPARTMENTS = [
   "LCM HQ Office",
   "Luther Centre Management (BMC)",
   "LCM Payroll"
+const DEFAULT_MINISTRIES = [
+  "LCM HQ Office",
+  "LCM Mission",
+  "LCM Education",
+  "LCM YAY",
+  "Property",
+  "Worship",
+  "Others"
 ];
 
 /* =========================
@@ -227,6 +235,9 @@ function ensureMinistryHeadsSheet_() {
     "Created_At",
     "Updated_At"
   ];
+  const sh = ensureSheet_(SHEET_MINISTRY_HEADS, ["Ministry", "Head_Email", "Head_Name", "Is_Supplementary", "Created_At", "Updated_At"]);
+  const headers = getHeaders_(sh);
+  const required = ["Ministry", "Head_Email", "Head_Name", "Is_Supplementary", "Created_At", "Updated_At"];
   const missing = required.filter(h => !headers.includes(h));
   if (missing.length) {
     sh.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
@@ -313,6 +324,7 @@ function getUserContext() {
   else if (isSecretary) signatoryRole = "SECRETARY";
 
   const ministryAssignments = email ? getDepartmentsForVerifier_(email) : [];
+  const ministryAssignments = email ? getMinistriesForHead_(email) : [];
 
   return {
     email: email,
@@ -413,6 +425,8 @@ function getLookups() {
   if (pvSh) pvs = rows_(pvSh);
 
   const departmentsList = getCanonicalDepartments_();
+  const ministriesFromLookups = look.filter(r => r.category === "ministry").map(r => r.value).filter(Boolean);
+  const ministries = Array.from(new Set(DEFAULT_MINISTRIES.concat(ministriesFromLookups)));
 
   return {
     departments: departments,
@@ -420,6 +434,7 @@ function getLookups() {
     projects: projects,
     banks: look.filter(r => r.category === "banks").map(r => r.value),
     ministries: [],
+    ministries: ministries,
     payees: payees.map(p => ({ 
       name: p.name || "", 
       bank_name: p.bank_name || "", 
@@ -858,6 +873,7 @@ function trackPVStatus(identifier) {
     const ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
     const ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
     const ministryRequired = String(pv.dept || "").trim() !== "";
+    const ministryRequired = String(pv.ministry || "").trim() !== "";
     const ministryReady = !ministryRequired || ministryVerified || ministryBypassed;
 
     if (["REVIEWED", "APPROVED"].includes(status) && ministryRequired) {
@@ -1085,6 +1101,25 @@ function listMinistryHeadAssignments() {
     });
 
     return { ok: true, assignments: rows };
+    if (data.length <= 1) return { ok: true, assignments: [] };
+    const headers = data.shift();
+
+    const idx = {
+      Ministry: headers.indexOf("Ministry"),
+      Head_Email: headers.indexOf("Head_Email"),
+      Head_Name: headers.indexOf("Head_Name"),
+      Is_Supplementary: headers.indexOf("Is_Supplementary")
+    };
+
+    const assignments = data.map((row, i) => ({
+      rowIndex: i + 2,
+      ministry: idx.Ministry >= 0 ? row[idx.Ministry] : "",
+      head_email: idx.Head_Email >= 0 ? row[idx.Head_Email] : "",
+      head_name: idx.Head_Name >= 0 ? row[idx.Head_Name] : "",
+      is_supplementary: String(idx.Is_Supplementary >= 0 ? row[idx.Is_Supplementary] : "").toUpperCase() === "YES"
+    })).filter(r => r.ministry || r.head_email || r.head_name);
+
+    return { ok: true, assignments: assignments };
   } catch (e) {
     console.error("listMinistryHeadAssignments error:", e);
     return { ok: false, error: e.message };
@@ -1107,6 +1142,10 @@ function saveMinistryHeadAssignment(data) {
       Primary_Head_Email: data.primary_email || "",
       Secondary_Head_Name: data.secondary_name || "",
       Secondary_Head_Email: data.secondary_email || "",
+      Ministry: data.ministry || "",
+      Head_Email: data.head_email || "",
+      Head_Name: data.head_name || "",
+      Is_Supplementary: data.is_supplementary ? "YES" : "NO",
       Updated_At: now_()
     };
 
@@ -1121,6 +1160,8 @@ function saveMinistryHeadAssignment(data) {
         updates.Created_At = now_();
         append_(sh, updates);
       }
+      updates.Created_At = now_();
+      append_(sh, updates);
     }
 
     return { ok: true };
@@ -1657,11 +1698,14 @@ function adminSendToSignatories(pvNo, comment, visibility, bankAccount) {
     }
 
     const ministryRequired = String(pv.dept || "").trim() !== "";
+
+    const ministryRequired = String(pv.ministry || "").trim() !== "";
     if (!ministryRequired) {
       updateData.ministry_verify_bypassed = "YES";
       updateData.ministry_bypass_by = ctx.email;
       updateData.ministry_bypass_at = now_();
       updateData.ministry_bypass_reason = "No department selected";
+      updateData.ministry_bypass_reason = "No ministry selected";
     }
 
     const updated = updateRow_(sh, "pv_no", pvNo, updateData);
@@ -2028,6 +2072,9 @@ function signatoryActOnPV(pvNo, action, comment, visibility) {
     const ministryRequired = String(pv.dept || "").trim() !== "";
     if (ministryRequired && !ministryVerified && !ministryBypassed) {
       return { ok: false, error: "Head verification is required before signatory approval" };
+    const ministryRequired = String(pv.ministry || "").trim() !== "";
+    if (ministryRequired && !ministryVerified && !ministryBypassed) {
+      return { ok: false, error: "Ministry verification is required before signatory approval" };
     }
 
     let approvals = pv.approvals || [];
@@ -2269,6 +2316,7 @@ function buildSignedPvHtml_(pv, signatures) {
     if (pv.payer_account_code) setBankDisplay += " - " + pv.payer_account_code;
   }
   const payFromValue = setBankDisplay || "(Not set)";
+  const payFromValue = setBankDisplay || "NOT SPECIFIED";
   const payFromBoxHtml = '<div style="text-align:center;">' +
     '<div style="border:2px solid #000;padding:6px 12px;font-size:12px;font-weight:bold;">PAY FROM ACCOUNT</div>' +
     '<div style="border:1px solid #000;border-top:none;padding:6px 12px;font-size:10px;">' + payFromValue + '</div>' +
@@ -2305,12 +2353,14 @@ function buildSignedPvHtml_(pv, signatures) {
   const ministryVerified = String(pv.ministry_verified || "").toUpperCase() === "YES";
   const ministryBypassed = String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
   const ministryRequired = String(pv.dept || "").trim() !== "";
+  const ministryRequired = String(pv.ministry || "").trim() !== "";
   const ministryStatus = ministryVerified ? "VERIFIED" : (ministryBypassed ? "BYPASSED" : "PENDING");
   const ministryBy = ministryVerified ? (pv.ministry_verified_by || "") : (ministryBypassed ? (pv.ministry_bypass_by || "") : "");
   const ministryAt = ministryVerified ? (pv.ministry_verified_at || "") : (ministryBypassed ? (pv.ministry_bypass_at || "") : "");
   const ministryComment = ministryVerified ? (pv.ministry_verified_comment || "") : (ministryBypassed ? (pv.ministry_bypass_reason || "") : "");
   const ministrySigKey = pv.ministry_verified_by ? "MINISTRY_HEAD|" + pv.ministry_verified_by : "MINISTRY_HEAD";
   const ministrySig = signatures[ministrySigKey] || signatures["MINISTRY_HEAD"] || signatures["DEPT_HEAD"] || {};
+  const ministrySig = signatures["MINISTRY_HEAD"] || signatures["DEPT_HEAD"] || {};
   const ministryVerifierLabel = ministryVerified ? (ministryBy || ministrySig.name || "Ministry Head") : (ministryBypassed ? "BYPASSED" : "PENDING");
 
   const ministryHtml = '<div style="margin-top:25px;">' +
@@ -2323,6 +2373,7 @@ function buildSignedPvHtml_(pv, signatures) {
     '<div style="border-top:1px solid #000;margin-top:5px;padding-top:5px;">' +
     '<div style="font-size:11px;">' + ministryVerifierLabel + '</div>' +
     '<div style="font-size:9px;color:#666;">(' + (ministryRequired ? (pv.dept || "") : "No department selected") + ')</div>' +
+    '<div style="font-size:9px;color:#666;">(' + (ministryRequired ? (pv.ministry || pv.dept || "") : "No ministry selected") + ')</div>' +
     '</div></div>' +
     '<div style="font-size:10px;line-height:1.4;">' +
     (ministryBy ? '<div><strong>By:</strong> ' + ministryBy + '</div>' : '') +
@@ -2874,6 +2925,8 @@ function saveRoleSignature(role, name, dataUrl) {
     };
     if (!allowed[role]) {
       return { ok: false, error: "Not authorized for this role" };
+    if (!ctx.isFinanceAdmin && !ctx.isSignatory && !ctx.isMinistryHead) {
+      return { ok: false, error: "Not authorized" };
     }
 
     // Upload image

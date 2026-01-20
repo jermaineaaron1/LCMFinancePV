@@ -84,6 +84,11 @@
     .status-badge.cancelled{background:#f3f4f6;color:#374151;border-color:#d1d5db;}
     .status-badge.ministry-verified{background:#ccfbf1;color:#0f766e;border-color:#99f6e4;}
     .status-badge.pending-ministry{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe;}
+    .status-badge.pending{background:#f3f4f6;color:#374151;border-color:#d1d5db;}
+    .status-badge.reviewed{background:#dbeafe;color:#1e40af;border-color:#bfdbfe;}
+    .status-badge.verified{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe;}
+    .status-badge.approved{background:#dcfce7;color:#166534;border-color:#bbf7d0;}
+    .status-badge.rejected{background:#fee2e2;color:#991b1b;border-color:#fecaca;}
     .card{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-soft);padding:18px 20px 20px;margin-bottom:18px;}
     .card-title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap;}
     .card-title{font-family:"Cinzel",serif;font-size:18px;margin:0;}
@@ -488,6 +493,45 @@
               <div><label class="field-label">Stored Signatures</label><div id="sigStoredList" class="muted">Loading...</div></div>
             </div>
           </div>
+          <div class="card" style="margin-top:14px;background:#fbfaf8;" id="ministryHeadAdminCard">
+            <div class="card-title-row">
+              <div><h4 style="margin:0;">Ministry Verification Assignments</h4><p class="card-subtitle">Assign ministry heads and supplementary verifiers.</p></div>
+              <button class="btn small secondary" type="button" id="btnRefreshMinistryHeads"><i class="fa-solid fa-rotate"></i></button>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Ministry / Department</th><th>Verifier Name</th><th>Email</th><th>Supplementary</th><th id="ministryHeadActionsHeader" style="width:140px;display:none;"></th></tr></thead>
+                <tbody id="ministryHeadListBody"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+              </table>
+            </div>
+            <div id="ministryHeadForm" style="display:none;margin-top:12px;padding:12px;background:#f0f0f0;border-radius:8px;">
+              <div class="grid-3" style="gap:10px;">
+                <div>
+                  <label class="field-label">Ministry / Department</label>
+                  <select id="ministryHeadMinistry"></select>
+                </div>
+                <div>
+                  <label class="field-label">Verifier Name</label>
+                  <input type="text" id="ministryHeadName" placeholder="Verifier name" />
+                </div>
+                <div>
+                  <label class="field-label">Verifier Email</label>
+                  <input type="email" id="ministryHeadEmail" placeholder="Verifier email" />
+                </div>
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                <label style="font-size:12px;display:flex;align-items:center;gap:6px;">
+                  <input type="checkbox" id="ministryHeadSupplementary" />
+                  Supplementary verifier
+                </label>
+                <div>
+                  <button class="btn small" type="button" id="btnSaveMinistryHead">Save Assignment</button>
+                  <button class="btn small secondary" type="button" id="btnCancelMinistryHead">Cancel</button>
+                </div>
+              </div>
+            </div>
+            <div id="ministryHeadBtnWrap" style="margin-top:12px;display:none;"><button class="btn small" type="button" id="btnShowMinistryHeadForm"><i class="fa-solid fa-plus"></i> Add Verifier</button></div>
+          </div>
         </div>
       </section>
     </div>
@@ -558,6 +602,16 @@
     "LCM HQ Office",
     "Luther Centre Management (BMC)",
     "LCM Payroll"
+    editingMinistryHeadRow: null
+  };
+  var DEFAULT_MINISTRIES = [
+    "LCM HQ Office",
+    "LCM Mission",
+    "LCM Education",
+    "LCM YAY",
+    "Property",
+    "Worship",
+    "Others"
   ];
 
   /* ============================================================
@@ -662,7 +716,7 @@
     signatories:{ title: "Signatory Approval", sub: "Bishop/Treasurer/Secretary.", onEnter: loadSignatories },
     recurring:  { title: "Recurring Expenses", sub: "Monthly/yearly expenses.", onEnter: loadRecurring },
     favourites: { title: "Favourites", sub: "Saved PV templates.", onEnter: loadFavourites },
-    settings:   { title: "Settings", sub: "Configuration.", onEnter: function() { refreshStoredSignatures(); refreshSigCardVisibility(); } }
+    settings:   { title: "Settings", sub: "Configuration.", onEnter: function() { refreshStoredSignatures(); refreshSigCardVisibility(); refreshMinistryHeadCardVisibility(); loadMinistryHeadAssignments(); } }
   };
 
   function setView(viewName) {
@@ -743,6 +797,7 @@
       option.textContent = opt.label;
       select.appendChild(option);
     });
+    return r.isFinanceAdmin || r.isSignatory;
   }
 
   /* ============================================================
@@ -802,6 +857,21 @@
       ministryHeadSelect.innerHTML = '<option value="">(select)</option>';
       deptList.forEach(function(d) {
         ministryHeadSelect.innerHTML += '<option value="' + d + '">' + d + '</option>';
+    // Ministries
+    var ministries = DEFAULT_MINISTRIES.concat((L.ministries || []).filter(function(m) { return m; }));
+    ministries = Array.from(new Set(ministries));
+
+    if (ministrySelect) {
+      ministries.forEach(function(m) {
+        ministrySelect.innerHTML += '<option value="' + m + '">' + m + '</option>';
+      });
+    }
+
+    var ministryHeadSelect = document.getElementById("ministryHeadMinistry");
+    if (ministryHeadSelect) {
+      ministryHeadSelect.innerHTML = '<option value="">(select)</option>';
+      ministries.forEach(function(m) {
+        ministryHeadSelect.innerHTML += '<option value="' + m + '">' + m + '</option>';
       });
     }
   }
@@ -992,6 +1062,7 @@
     var ministryVerified = pv && String(pv.ministry_verified || "").toUpperCase() === "YES";
     var ministryBypassed = pv && String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
     var ministryRequired = pv && String(pv.dept || "").trim() !== "";
+    var ministryRequired = pv && String(pv.ministry || "").trim() !== "";
 
     if (status === "PENDING") { 
       info = { label: "Pending Finance Admin Review", cssClass: "pending", description: "Awaiting Finance Admin to review this PV" };
@@ -1000,6 +1071,9 @@
         info = { label: "Head Verified", cssClass: "ministry-verified", description: "Head verified. Awaiting Signatory approval." };
       } else if (ministryRequired && ministryBypassed) {
         info = { label: "Verification Bypassed", cssClass: "ministry-verified", description: "Head verification bypassed. Awaiting Signatory approval." };
+        info = { label: "Ministry Verified", cssClass: "ministry-verified", description: "Ministry Head verified. Awaiting Signatory approval." };
+      } else if (ministryRequired && ministryBypassed) {
+        info = { label: "Verification Bypassed", cssClass: "ministry-verified", description: "Ministry verification bypassed. Awaiting Signatory approval." };
       } else if (!ministryRequired) {
         info = { label: "Finance Admin Reviewed", cssClass: "reviewed", description: "Finance Admin reviewed. Awaiting Signatory approval." };
       } else {
@@ -1049,6 +1123,11 @@
     } else if (normalized === "PENDING_SIGNATORY") {
       label = "PENDING SIGNATORY";
       cls = "reviewed";
+      label = "REVIEWED";
+      cls = "reviewed";
+    } else if (["MINISTRY_VERIFIED", "PENDING_MINISTRY", "PENDING_SIGNATORY"].includes(normalized)) {
+      label = "VERIFIED";
+      cls = "verified";
     } else if (normalized === "APPROVED") {
       label = "APPROVED";
       cls = "approved";
@@ -1237,6 +1316,7 @@
     document.getElementById("pvNumberPreview").textContent = "(auto)";
     document.getElementById("applicantName").value = "";
     document.getElementById("purpose").value = "";
+    if (document.getElementById("ministrySelect")) document.getElementById("ministrySelect").value = "";
     updatePvStatusBadge("PENDING");
   }
 
@@ -1586,6 +1666,7 @@
           var approvalDetails = pv.approval_details || "";
           var alreadyApproved = pv.currentUserApproved;
           var ministryRequired = String(pv.dept || "").trim() !== "";
+          var ministryRequired = String(pv.ministry || "").trim() !== "";
           var ministryReady = !ministryRequired ||
             String(pv.ministry_verified || "").toUpperCase() === "YES" ||
             String(pv.ministry_verify_bypassed || "").toUpperCase() === "YES";
@@ -2028,6 +2109,7 @@
 
     // Pay from account display
     var payFromValue = pv.payer_bank_name ? pv.payer_bank_name : "(Not set)";
+    var payFromValue = pv.payer_bank_name ? pv.payer_bank_name : "NOT SPECIFIED";
     if (pv.payer_bank_name && pv.payer_account_code) {
       payFromValue += " - " + pv.payer_account_code;
     }
@@ -2045,6 +2127,10 @@
     var ministryStatus = ministryVerified ? "Verified" : (ministryBypassed ? "Bypassed" : "Pending");
     var ministrySigKey = pv.ministry_verified_by ? ("MINISTRY_HEAD|" + pv.ministry_verified_by) : "MINISTRY_HEAD";
     var ministrySig = signatures[ministrySigKey] || signatures.MINISTRY_HEAD || {};
+    var ministryRequired = String(pv.ministry || "").trim() !== "";
+    var ministryName = pv.ministry || pv.dept || "";
+    var ministryStatus = ministryVerified ? "Verified" : (ministryBypassed ? "Bypassed" : "Pending");
+    var ministrySig = signatures.MINISTRY_HEAD || signatures.DEPT_HEAD || {};
     var ministryVerifierLabel = ministryVerified ? (pv.ministry_verified_by || ministrySig.name || "Ministry Head") : (ministryBypassed ? "BYPASSED" : "Pending");
     
     ministryHeadHtml = '<div style="margin-top:20px;padding:15px;border:1px solid #ddd;border-radius:8px;">' +
@@ -2065,6 +2151,7 @@
       '<div style="border-top:1px solid #000;margin-top:5px;padding-top:5px;">' +
       '<div style="font-size:10px;">' + ministryVerifierLabel + '</div>' +
       '<div style="font-size:9px;color:#666;">(' + (ministryRequired ? ministryName : "No department selected") + ')</div>' +
+      '<div style="font-size:9px;color:#666;">(' + (ministryRequired ? ministryName : "No ministry selected") + ')</div>' +
       '</div></div>' +
       '<div style="font-size:10px;color:#666;">' +
       (ministryVerified && pv.ministry_verified_by ? 'By: ' + pv.ministry_verified_by + '<br>' : '') +
@@ -3042,6 +3129,142 @@
     });
   }
 
+  /* ============================================================
+     MINISTRY VERIFIER MANAGEMENT
+     ============================================================ */
+  function refreshMinistryHeadCardVisibility() {
+    var card = document.getElementById("ministryHeadAdminCard");
+    if (card) card.style.display = canManageMinistryHeads() ? "block" : "none";
+  }
+
+  function showMinistryHeadForm() {
+    document.getElementById("ministryHeadForm").style.display = "block";
+    document.getElementById("ministryHeadBtnWrap").style.display = "none";
+  }
+
+  function hideMinistryHeadForm() {
+    document.getElementById("ministryHeadForm").style.display = "none";
+    document.getElementById("ministryHeadBtnWrap").style.display = canManageMinistryHeads() ? "block" : "none";
+    document.getElementById("ministryHeadMinistry").value = "";
+    document.getElementById("ministryHeadName").value = "";
+    document.getElementById("ministryHeadEmail").value = "";
+    document.getElementById("ministryHeadSupplementary").checked = false;
+    LCM.editingMinistryHeadRow = null;
+  }
+
+  function loadMinistryHeadAssignments() {
+    var body = document.getElementById("ministryHeadListBody");
+    if (!body) return;
+    var actionsHeader = document.getElementById("ministryHeadActionsHeader");
+
+    if (!canManageMinistryHeads()) {
+      body.innerHTML = '<tr><td colspan="5" class="muted">Not available for your role.</td></tr>';
+      if (actionsHeader) actionsHeader.style.display = "none";
+      return;
+    }
+
+    body.innerHTML = '<tr><td colspan="5" class="muted">Loading...</td></tr>';
+    runServer("listMinistryHeadAssignments", undefined, function(res) {
+      if (!res || !res.ok) {
+        body.innerHTML = '<tr><td colspan="5" class="muted">' + ((res && res.error) || "Unable to load.") + '</td></tr>';
+        return;
+      }
+
+      var rows = res.assignments || [];
+      if (actionsHeader) actionsHeader.style.display = "table-cell";
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="5" class="muted">No assignments found.</td></tr>';
+      } else {
+        var canManage = canManageMinistryHeads();
+        document.getElementById("ministryHeadActionsHeader").style.display = canManage ? "table-cell" : "none";
+        body.innerHTML = "";
+        rows.forEach(function(r) {
+          var actions = "";
+          if (canManage) {
+            actions = '<button class="btn small secondary" type="button" onclick="editMinistryHeadAssignment(' + r.rowIndex + ')"><i class="fa-solid fa-pen"></i> Edit</button>' +
+              ' <button class="btn small danger" type="button" onclick="deleteMinistryHeadAssignment(' + r.rowIndex + ')"><i class="fa-solid fa-trash"></i></button>';
+          }
+          body.innerHTML += '<tr>' +
+            '<td>' + (r.ministry || "") + '</td>' +
+            '<td>' + (r.head_name || "") + '</td>' +
+            '<td>' + (r.head_email || "") + '</td>' +
+            '<td>' + (r.is_supplementary ? "Yes" : "No") + '</td>' +
+            '<td>' + actions + '</td>' +
+            '</tr>';
+        });
+      }
+
+      document.getElementById("ministryHeadBtnWrap").style.display = canManageMinistryHeads() ? "block" : "none";
+      hideMinistryHeadForm();
+    });
+  }
+
+  function editMinistryHeadAssignment(rowIndex) {
+    runServer("listMinistryHeadAssignments", undefined, function(res) {
+      if (!res || !res.ok) {
+        toastErr((res && res.error) || "Unable to load assignment.");
+        return;
+      }
+      var match = (res.assignments || []).find(function(r) { return r.rowIndex === rowIndex; });
+      if (!match) {
+        toastErr("Assignment not found.");
+        return;
+      }
+      document.getElementById("ministryHeadMinistry").value = match.ministry || "";
+      document.getElementById("ministryHeadName").value = match.head_name || "";
+      document.getElementById("ministryHeadEmail").value = match.head_email || "";
+      document.getElementById("ministryHeadSupplementary").checked = !!match.is_supplementary;
+      LCM.editingMinistryHeadRow = rowIndex;
+      showMinistryHeadForm();
+    });
+  }
+
+  function saveMinistryHeadAssignment() {
+    var ministry = document.getElementById("ministryHeadMinistry").value || "";
+    var name = document.getElementById("ministryHeadName").value.trim();
+    var email = document.getElementById("ministryHeadEmail").value.trim();
+    var isSupplementary = document.getElementById("ministryHeadSupplementary").checked;
+
+    if (!ministry) {
+      toastWarn("Select a ministry/department.");
+      return;
+    }
+    if (!email) {
+      toastWarn("Enter verifier email.");
+      return;
+    }
+
+    var payload = {
+      rowIndex: LCM.editingMinistryHeadRow,
+      ministry: ministry,
+      head_name: name,
+      head_email: email,
+      is_supplementary: isSupplementary
+    };
+
+    runServer("saveMinistryHeadAssignment", payload, function(res) {
+      if (res && res.ok) {
+        toastOk("Assignment saved.");
+        hideMinistryHeadForm();
+        loadMinistryHeadAssignments();
+      } else {
+        toastErr((res && res.error) || "Save failed.");
+      }
+    });
+  }
+
+  function deleteMinistryHeadAssignment(rowIndex) {
+    if (!confirm("Remove this verifier assignment?")) return;
+    runServer("deleteMinistryHeadAssignment", rowIndex, function(res) {
+      if (res && res.ok) {
+        toastOk("Assignment removed.");
+        loadMinistryHeadAssignments();
+      } else {
+        toastErr((res && res.error) || "Delete failed.");
+      }
+    });
+  }
+
   function refreshSigCardVisibility() {
     var card = document.getElementById("signatureAdminCard");
     if (card) card.style.display = canManageSignatures() ? "block" : "none";
@@ -3070,6 +3293,12 @@
         html += '<div style="border:1px solid #ddd;border-radius:10px;background:#fff;padding:8px;">' +
           '<div style="font-weight:700;font-size:12px;">' + label + '</div>' +
           '<div class="muted">' + (s.name || "(no name)") + (s.email ? ' • ' + s.email : '') + '</div>' +
+      Object.keys(sigs).forEach(function(role) {
+        var s = sigs[role] || {};
+        var label = role.replace(/_/g, " ");
+        html += '<div style="border:1px solid #ddd;border-radius:10px;background:#fff;padding:8px;">' +
+          '<div style="font-weight:700;font-size:12px;">' + label + '</div>' +
+          '<div class="muted">' + (s.name || "(no name)") + '</div>' +
           (s.file_url ? '<img src="' + s.file_url + '" style="max-height:40px;margin-top:6px;">' : '') +
           '</div>';
       });
@@ -3225,6 +3454,17 @@
     if (document.getElementById("btnRefreshMinistryHead")) {
       document.getElementById("btnRefreshMinistryHead").addEventListener("click", loadMinistryHeadPVs);
     }
+  }
+
+  function removeDuplicateLayoutWrappers() {
+    var sidebars = document.querySelectorAll(".sidebar");
+    sidebars.forEach(function(node, idx) {
+      if (idx > 0 && node.parentNode) node.parentNode.removeChild(node);
+    });
+    var mains = document.querySelectorAll("main.main");
+    mains.forEach(function(node, idx) {
+      if (idx > 0 && node.parentNode) node.parentNode.removeChild(node);
+    });
   }
 
   function removeDuplicateLayoutWrappers() {
